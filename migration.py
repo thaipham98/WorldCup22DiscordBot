@@ -64,6 +64,7 @@ class Migration:
 
         for event in events:
             match = self.to_match(event)
+            match.__str__()
             match_payload = match.to_payload()
 
             if match.id not in match_table:
