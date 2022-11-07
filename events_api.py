@@ -32,7 +32,7 @@ class Event_API:
 
     def get_event(self, event_id):
         payload = {'event_id': event_id, 'token': token}
-        endpoint = url + "/view"
+        endpoint = url + "/v1/event/view"
         response = requests.get(endpoint, payload)
 
         return response.json()

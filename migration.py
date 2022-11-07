@@ -3,17 +3,21 @@ from replit import db
 import events_api
 from match import Match
 
-match_table = db["match"] = {}
+
+
 
 class Migration:
     def __init__(self):
         self.api = events_api.Event_API()
 
     def to_match(self, event):
+        
         event_id = event['id']
+        #print(event_id)
         match = self.api.get_event(event_id)
 
         if match['success'] != 1:
+            #print(match)
             print("Cannot convert event to match")
             return None
 
@@ -61,14 +65,23 @@ class Migration:
 
             events += result['results']
             total -= per_page
-
+          
+        
         for event in events:
             match = self.to_match(event)
-            match.__str__()
+            #print(match.__str__())
             match_payload = match.to_payload()
 
+
+            match_table = db["match"]
+          
             if match.id not in match_table:
-                match_table[match.id] = match_payload
+                #print("insert")
+                #print(match.id, match_payload)
+                #print(db["match"])
+                db["match"][match.id] = match_payload
+                #match_table[match.id] = match_payload
+
 
 
 
