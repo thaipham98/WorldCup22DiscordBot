@@ -9,9 +9,6 @@ class Match:
         self.time = time
         self.is_over = is_over
 
-    def __str__(self) -> str:
-        return super().__str__()
-
     def to_payload(self):
         return {'home': self.home, 'away': self.away, 'asian_handicap': self.asian_handicap, 'over_under': self.over_under, 'result': self.result, 'time': self.time, 'is_over': self.is_over}
 

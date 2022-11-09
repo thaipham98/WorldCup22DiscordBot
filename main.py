@@ -4,6 +4,8 @@ from replit import db
 import os
 import random
 from migration import Migration
+from user_table import UserTable
+from user import User
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -12,6 +14,8 @@ intents.members = True
 #client = commands.Bot(intents=discord.Intents.all())
 #client = discord.Client(intents=intents)
 token = os.getenv('TOKEN')
+bot_id = int(os.getenv('BOT_ID'))
+guild_id = int(os.getenv('GUILD_ID'))
 #tree = app_commands.CommandTree(client)
 
 class aclient(discord.Client):
@@ -28,39 +32,103 @@ class aclient(discord.Client):
 
 client = aclient()
 tree = app_commands.CommandTree(client)
+#db["user"].clear()
+user_table = UserTable()
+
+
+text_channel_name = 'Text Channels'
 
 # @client.event
 # async def on_ready():
 #     print("Logged in as a bot {0.user}".format(client))
 #     await client.tree.sync()
 
+async def create_private_channel(interaction, user_id, channel_name):
+      user = client.get_user(int(user_id))
+      bot = client.get_user(bot_id)
+      guild = interaction.guild
+      category = discord.utils.get(guild.categories, name=text_channel_name)
+      overwrites = {
+          guild.default_role: discord.PermissionOverwrite(read_messages=False),
+          user: discord.PermissionOverwrite(view_channel=True),
+          bot: discord.PermissionOverwrite(view_channel=True)
+      }
+
+      guild = interaction.guild
+      category = discord.utils.get(guild.categories, name=text_channel_name)
+
+      channel = await guild.create_text_channel(channel_name, overwrites=overwrites, category=category)
+      #print(type(user))
+      # channel = interaction.channel
+      # channel_id = interaction.channel_id
+      # user.id = interaction.user
+      await interaction.response.send_message(content="Channel {0} is created for {1}".format(channel_name, user.name))
+      return user, channel
+
 def from_admin(interaction):
   return interaction.channel.name == 'admin' and interaction.channel_id == int(os.getenv('ADMIN_CHANNEL_ID')) and interaction.user.id == int(os.getenv('ADMIN_ID'))
 
 @tree.command(name="create", description="Create a new player")
-async def create_player(interaction: discord.Interaction):
-    channel_id = interaction.channel_id
+async def create_player(interaction: discord.Interaction, user_id : str, channel_name : str):
+    #user_id = int(user_id)
+    guild = client.get_guild(guild_id)
+    if guild.get_member(int(user_id)) is None: 
+      await interaction.response.send_message(content='User with id = {0} does not exist in the server'.format(user_id))
+      return
+  
     if from_admin(interaction):
-      # channel = interaction.channel
-      # channel_id = interaction.channel_id
-      # user.id = interaction.user
-      await interaction.response.send_message(content="create!")
+      user_entity = user_table.view_user(user_id)
+      if user_entity is not None:
+        await interaction.response.send_message(content='User with id = {0} already existed'.format(user_id))
+      else:
+        user, user_channel = await create_private_channel(interaction, user_id, channel_name)
+        user_entity = User(user.id, user.name, user_channel.id, user_channel.name, 0, 0, 0, 0, "")
+        user_table.add_user(user_entity)
     else:
-      await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command!', ephemeral=True)
+      await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help.', ephemeral=True)
       #channel = client.get_channel(channel_id)
       #await channel.send('This is an admin command. You are not allowed to perform this command!')
       #await interaction.response.send_message()
 
+async def kick_user(interaction, user_id):
+  user_entity = user_table.view_user(user_id)
+  if user_entity is None:
+    print("There is no user with id = {0} a".format(user_id))
+    return 0
+    
+  channel_id = user_entity.channel_id
+  user_table.delete_user(user_id)
+  
+  user = client.get_user(int(user_id))
+  await interaction.guild.kick(user)
+  print("channel_id=", channel_id)
+  return channel_id
+
+async def delete_user_channel(user_channel_id):
+  channel = client.get_channel(user_channel_id)
+  await channel.delete()
+
 @tree.command(name="delete", description="Delete an existing player")
-async def delete_player(interaction: discord.Interaction):
-    channel_id = interaction.channel_id
+async def delete_player(interaction: discord.Interaction, user_id : str):
+    #user_id = int(user_id)
+    guild = client.get_guild(guild_id)
+    if guild.get_member(int(user_id)) is None: 
+      await interaction.response.send_message(content='User with id = {0} does not exist in the server'.format(user_id))
+      return
+    #channel_id = interaction.channel_id
+    print("from delete_player", db['user'])
     if from_admin(interaction):
+      user_channel_id = await kick_user(interaction, user_id)
+      if user_channel_id:
+        await delete_user_channel(user_channel_id)
+        await interaction.response.send_message(content="User with id = {0} is deleted".format(user_id))
       # channel = interaction.channel
       # channel_id = interaction.channel_id
       # user.id = interaction.user
-      await interaction.response.send_message(content="delete!")
+      else:
+        await interaction.response.send_message(content="There is no user with id = {0}".format(user_id))
     else:
-      await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command!', ephemeral=True)
+      await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help.', ephemeral=True)
 
 @tree.command(name="update", description="Update scores")
 async def update_scores(interaction: discord.Interaction):
@@ -71,7 +139,7 @@ async def update_scores(interaction: discord.Interaction):
       # user.id = interaction.user
       await interaction.response.send_message(content="update!")
     else:
-      await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command!', ephemeral=True)
+      await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help', ephemeral=True)
 
 @tree.command(name="remind", description="Remind players")
 async def remind_players(interaction: discord.Interaction):
@@ -82,7 +150,7 @@ async def remind_players(interaction: discord.Interaction):
       # user.id = interaction.user
       await interaction.response.send_message(content="remind!")
     else:
-      await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command!', ephemeral=True)
+      await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help', ephemeral=True)
 
 @tree.command(name="bet", description="Choose a betting option")
 async def bet(interaction: discord.Interaction):
@@ -112,57 +180,16 @@ async def help(interaction: discord.Interaction):
     # await channel.send('Help')
     await interaction.response.send_message(content='help', ephemeral=True)
 
-    
-  
-
-
-
-# @client.event
-# async def on_message(message):
-#     print('Message is', message)
-#     username = str(message.author).split("#")[0]
-#     channel = str(message.channel.name)
-#     user_message = str(message.content)
-
-
-#     channel_id = message.channel.id
-#     channel_name = message.channel.name
-#     author_id = message.author.id
-#     print(channel_id)
-#     print(type(channel_id))
-#     print(channel_name)
-#     print(type(channel_name))
-#     print(author_id)
-#     print(type(author_id))
-#     id = 727084338675449906
-#     print('username is', client.get_user(id))
-#     print(f'Message {user_message} by {username} on {channel}')
-
-#     if message.author == client.user:
-#         return
-
-#     if channel == "random":
-#         if user_message.lower() == "hello" or user_message.lower() == "hi":
-#             await message.channel.send(f'Hello {username}')
-#             return
-#         elif user_message.lower() == "bye":
-#             await message.channel.send(f'Bye {username}')
-#         elif user_message.lower() == "tell me a joke":
-#             jokes = [" Can someone please shed more\
-#             light on how my lamp got stolen?",
-#                      "Why is she called llene? She\
-#                      stands on equal legs.",
-#                      "What do you call a gazelle in a \
-#                      lions territory? Denzel."]
-#             await message.channel.send(random.choice(jokes))
-          
-#print("db_URL:", os.getenv("REPLIT_DB_URL"))
+#print(db["user"])
+#print(user_table.table)
 client.run(token)
 
 
 
 #db.clear()
 #db["match"] = {}
+#db["user"] = {}
+
 #match_table = db["match"]
 #migration = Migration()
 #migration.insert_matches_data()

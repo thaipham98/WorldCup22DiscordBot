@@ -2,13 +2,12 @@ from replit import db
 
 import events_api
 from match import Match
-
-
-
+from match_table import MatchTable
 
 class Migration:
     def __init__(self):
         self.api = events_api.Event_API()
+        self.matchDAO = MatchTable()
 
     def to_match(self, event):
         
@@ -70,17 +69,7 @@ class Migration:
         for event in events:
             match = self.to_match(event)
             #print(match.__str__())
-            match_payload = match.to_payload()
-
-
-            match_table = db["match"]
-          
-            if match.id not in match_table:
-                #print("insert")
-                #print(match.id, match_payload)
-                #print(db["match"])
-                db["match"][match.id] = match_payload
-                #match_table[match.id] = match_payload
+            self.matchDAO.add_match(match)
 
 
 
