@@ -23,6 +23,13 @@ class Event_API:
 
         return response.json()
 
+    def get_upcoming_daily_events(self, day, sport_id=sport_id, league_id=league_id, page=1):
+        payload = {'sport_id': sport_id, 'league_id': league_id, 'token': token, 'page': page, 'day': day}
+        endpoint = url + "/v3/events/upcoming"
+        response = requests.get(endpoint, payload)
+
+        return response.json()
+
     def get_event_odds(self, event_id, source=source):
         payload = {'event_id': event_id, 'source': source, 'token': token}
         endpoint = url + "/v2/event/odds"

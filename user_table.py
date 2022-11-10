@@ -34,5 +34,16 @@ class UserTable:
       return User(user_id, self.table[user_id]['name'], self.table[user_id]['channel_id'], self.table[user_id]['channel_name'], self.table[user_id]['win'], self.table[user_id]['draw'], self.table[user_id]['loss'], self.table[user_id]['score'], self.table[user_id]['history'])
     
     return None
+
+  def view_all(self):
+    users = []
+
+    for user_id in self.table.keys():
+      user = User(user_id, self.table[user_id]['name'], self.table[user_id]['channel_id'], self.table[user_id]['channel_name'], self.table[user_id]['win'], self.table[user_id]['draw'], self.table[user_id]['loss'], self.table[user_id]['score'], self.table[user_id]['history'])
+      users.append(user)
+
+    return users
+
+    
     
     

@@ -6,6 +6,9 @@ import random
 from migration import Migration
 from user_table import UserTable
 from user import User
+from events_api import Event_API
+import datetime
+from bet_model import BetModel
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -16,6 +19,8 @@ intents.members = True
 token = os.getenv('TOKEN')
 bot_id = int(os.getenv('BOT_ID'))
 guild_id = int(os.getenv('GUILD_ID'))
+events_api = Event_API()
+bet_model = BetModel()
 #tree = app_commands.CommandTree(client)
 
 class aclient(discord.Client):
@@ -82,7 +87,7 @@ async def create_player(interaction: discord.Interaction, user_id : str, channel
         await interaction.response.send_message(content='User with id = {0} already existed'.format(user_id))
       else:
         user, user_channel = await create_private_channel(interaction, user_id, channel_name)
-        user_entity = User(user.id, user.name, user_channel.id, user_channel.name, 0, 0, 0, 0, "")
+        user_entity = User(user.id, user.name, user_channel.id, user_channel.name, 0, 0, 0, 0, {})
         user_table.add_user(user_entity)
     else:
       await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help.', ephemeral=True)
@@ -157,6 +162,15 @@ async def bet(interaction: discord.Interaction):
     # channel_id = interaction.channel_id
     # channel = client.get_channel(channel_id)
     # await channel.send('Betting')
+    current_time = datetime.datetime.now()
+    today = str(current_time.year) + str(current_time.month) + str(current_time.day)
+    daily_matches = events_api.get_upcoming_daily_events("20221118")
+    daily_bet = bet_model.from_daily_matches_to_daily_bet(daily_matches)
+
+    if len(daily_bet) == 0:
+      await interaction.response.send_message(content='There are no matches today.', ephemeral=True)
+      return
+    print(daily_bet)
     await interaction.response.send_message(content='betting', ephemeral=True)
 
 @tree.command(name="me", description="Show your record")
@@ -164,13 +178,22 @@ async def view_me(interaction: discord.Interaction):
     # channel_id = interaction.channel_id
     # channel = client.get_channel(channel_id)
     # await channel.send('Me')
+    user_id = interaction.user.id
+    user = user_table.view_user(str(user_id))
+    record = user.to_record()
+    print(record)
+    
     await interaction.response.send_message(content='me', ephemeral=True)
 
-@tree.command(name="record", description="Show all record")
+@tree.command(name="record", description="Show all records")
 async def view_all_record(interaction: discord.Interaction):
     # channel_id = interaction.channel_id
     # channel = client.get_channel(channel_id)
     # await channel.send('All record')
+    users = user_table.view_all()
+    records = [user.to_record() for user in users]
+    print(records)
+    #TODO ranking
     await interaction.response.send_message(content='view all records', ephemeral=True)
 
 @tree.command(name="help", description="Show rules and commands")
@@ -178,9 +201,11 @@ async def help(interaction: discord.Interaction):
     # channel_id = interaction.channel_id
     # channel = client.get_channel(channel_id)
     # await channel.send('Help')
-    await interaction.response.send_message(content='help', ephemeral=True)
+    guideline = "/bet: view upcoming matches and choose betting option \n/me: view your current record \n/record: view all records \n/help: view available commands"
+    await interaction.response.send_message(content=guideline, ephemeral=True)
 
 #print(db["user"])
+#print(db['match'])
 #print(user_table.table)
 client.run(token)
 

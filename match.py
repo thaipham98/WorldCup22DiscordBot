@@ -1,3 +1,5 @@
+from daily_bet import DailyBet
+
 class Match:
     def __init__(self, id, home, away, asian_handicap, over_under, result, time, is_over):
         self.id = id
@@ -11,5 +13,8 @@ class Match:
 
     def to_payload(self):
         return {'home': self.home, 'away': self.away, 'asian_handicap': self.asian_handicap, 'over_under': self.over_under, 'result': self.result, 'time': self.time, 'is_over': self.is_over}
+
+    def to_daily_bet(self):
+      return DailyBet(home=self.home,away=self.away,asian_handicap=self.asian_handicap,over_under=self.over_under)
 
 
