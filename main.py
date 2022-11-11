@@ -43,11 +43,6 @@ user_table = UserTable()
 
 text_channel_name = 'Text Channels'
 
-# @client.event
-# async def on_ready():
-#     print("Logged in as a bot {0.user}".format(client))
-#     await client.tree.sync()
-
 async def create_private_channel(interaction, user_id, channel_name):
       user = client.get_user(int(user_id))
       bot = client.get_user(bot_id)
@@ -63,12 +58,16 @@ async def create_private_channel(interaction, user_id, channel_name):
       category = discord.utils.get(guild.categories, name=text_channel_name)
 
       channel = await guild.create_text_channel(channel_name, overwrites=overwrites, category=category)
-      #print(type(user))
-      # channel = interaction.channel
-      # channel_id = interaction.channel_id
-      # user.id = interaction.user
       await interaction.response.send_message(content="Channel {0} is created for {1}".format(channel_name, user.name))
       return user, channel
+
+def get_daily_bet():
+  current_time = datetime.datetime.now() 
+  today = "{:02d}".format(current_time.year) + "{:02d}".format(current_time.month) + "{:02d}".format(current_time.day)
+  daily_matches = events_api.get_upcoming_daily_events(today)
+  daily_bet = bet_model.from_daily_matches_to_daily_bet(daily_matches)
+  return daily_bet
+
 
 def from_admin(interaction):
   return interaction.channel.name == 'admin' and interaction.channel_id == int(os.getenv('ADMIN_CHANNEL_ID')) and interaction.user.id == int(os.getenv('ADMIN_ID'))
@@ -91,10 +90,7 @@ async def create_player(interaction: discord.Interaction, user_id : str, channel
         user_table.add_user(user_entity)
     else:
       await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help.', ephemeral=True)
-      #channel = client.get_channel(channel_id)
-      #await channel.send('This is an admin command. You are not allowed to perform this command!')
-      #await interaction.response.send_message()
-
+      
 async def kick_user(interaction, user_id):
   user_entity = user_table.view_user(user_id)
   if user_entity is None:
@@ -127,9 +123,7 @@ async def delete_player(interaction: discord.Interaction, user_id : str):
       if user_channel_id:
         await delete_user_channel(user_channel_id)
         await interaction.response.send_message(content="User with id = {0} is deleted".format(user_id))
-      # channel = interaction.channel
-      # channel_id = interaction.channel_id
-      # user.id = interaction.user
+      
       else:
         await interaction.response.send_message(content="There is no user with id = {0}".format(user_id))
     else:
@@ -139,33 +133,28 @@ async def delete_player(interaction: discord.Interaction, user_id : str):
 async def update_scores(interaction: discord.Interaction):
     channel_id = interaction.channel_id
     if from_admin(interaction):
-      # channel = interaction.channel
-      # channel_id = interaction.channel_id
-      # user.id = interaction.user
       await interaction.response.send_message(content="update!")
     else:
       await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help', ephemeral=True)
 
 @tree.command(name="remind", description="Remind players")
 async def remind_players(interaction: discord.Interaction):
-    channel_id = interaction.channel_id
+    #channel_id = interaction.channel_id
     if from_admin(interaction):
-      # channel = interaction.channel
-      # channel_id = interaction.channel_id
-      # user.id = interaction.user
+      users = user_table.view_all()
+      daily_bet = get_daily_bet()
+      for user in users:
+        channel = client.get_channel(user.channel_id) #channel id here
+        await channel.send('hello')
+        #TODO send embed
+    
       await interaction.response.send_message(content="remind!")
     else:
       await interaction.response.send_message(content='This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help', ephemeral=True)
 
 @tree.command(name="bet", description="Choose a betting option")
 async def bet(interaction: discord.Interaction):
-    # channel_id = interaction.channel_id
-    # channel = client.get_channel(channel_id)
-    # await channel.send('Betting')
-    current_time = datetime.datetime.now()
-    today = str(current_time.year) + str(current_time.month) + str(current_time.day)
-    daily_matches = events_api.get_upcoming_daily_events("20221118")
-    daily_bet = bet_model.from_daily_matches_to_daily_bet(daily_matches)
+    daily_bet = get_daily_bet()
 
     if len(daily_bet) == 0:
       await interaction.response.send_message(content='There are no matches today.', ephemeral=True)
@@ -175,9 +164,6 @@ async def bet(interaction: discord.Interaction):
 
 @tree.command(name="me", description="Show your record")
 async def view_me(interaction: discord.Interaction):
-    # channel_id = interaction.channel_id
-    # channel = client.get_channel(channel_id)
-    # await channel.send('Me')
     user_id = interaction.user.id
     user = user_table.view_user(str(user_id))
     record = user.to_record()
@@ -187,9 +173,6 @@ async def view_me(interaction: discord.Interaction):
 
 @tree.command(name="record", description="Show all records")
 async def view_all_record(interaction: discord.Interaction):
-    # channel_id = interaction.channel_id
-    # channel = client.get_channel(channel_id)
-    # await channel.send('All record')
     users = user_table.view_all()
     records = [user.to_record() for user in users]
     print(records)
@@ -198,9 +181,6 @@ async def view_all_record(interaction: discord.Interaction):
 
 @tree.command(name="help", description="Show rules and commands")
 async def help(interaction: discord.Interaction):
-    # channel_id = interaction.channel_id
-    # channel = client.get_channel(channel_id)
-    # await channel.send('Help')
     guideline = "/bet: view upcoming matches and choose betting option \n/me: view your current record \n/record: view all records \n/help: view available commands"
     await interaction.response.send_message(content=guideline, ephemeral=True)
 
