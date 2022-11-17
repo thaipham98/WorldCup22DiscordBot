@@ -3,12 +3,13 @@ from replit import db
 import events_api
 from match import Match
 from match_table import MatchTable
+from user_table import UserTable
 
 class Migration:
     def __init__(self):
         self.api = events_api.Event_API()
         self.matchDAO = MatchTable()
-
+        
     def to_match(self, event):
         
         event_id = event['id']
