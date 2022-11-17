@@ -134,7 +134,7 @@ class Updator:
           # updated_user.history[match_id]['bet_option'] = BetType.UNCHOSEN
           # updated_user.history[match_id]['result'] = ""
           # updated_user.history[match_id]['time'] = match.time
-          
+
           updated_user.history[match_id] = {
             "bet_option": BetType.UNCHOSEN.value,
             "result": "",
@@ -145,25 +145,29 @@ class Updator:
           # user.history[match_id]['bet_option'] = BetType.UNCHOSEN
           # user.history[match_id]['result'] = ""
           # user.history[match_id]['time'] = match.time
-          
+
           #print("after:", user.history)
           # user.history[match_id] = {
-           
-            
+
           # }
           #print("here")
-          
-        else:
-          if match.is_over:
-            #user did not bet
-            #updated_user = copy.deepcopy(user)
-            if updated_user.history[match_id]['bet_option'] == BetType.UNCHOSEN.value:
-              updated_user.history[match_id]['bet_option'] = randint(1, 4)
 
-            
-            result = self.calculator.calculate(updated_user.history[match_id]['bet_option'], match.asian_handicap, match.over_under, match.result)
+        
+        if match.is_over:
+          #user did not bet
+          #updated_user = copy.deepcopy(user)
+          if updated_user.history[match_id][
+              'bet_option'] == BetType.UNCHOSEN.value:
+            updated_user.history[match_id]['bet_option'] = randint(1, 4)
+
+          print(updated_user.history[match_id]['result'] == '')
+          print(updated_user.history[match_id]['result'] == '')
+          if updated_user.history[match_id]['result'] == '':
+            result = self.calculator.calculate(
+              updated_user.history[match_id]['bet_option'],
+              match.asian_handicap, match.over_under, match.result)
             print(updated_user.name, match_id, result.name)
-            
+
             updated_user.history[match_id]['result'] = result.name
             print(match_id, updated_user.history[match_id]['result'])
             updated_user.score += result.value
@@ -176,9 +180,8 @@ class Updator:
 
             if result == Result.DRAW:
               updated_user.draw += 1
-              
-      
-      print(updated_user.name,updated_user.score,updated_user.history)
+
+      print(updated_user.name, updated_user.score, updated_user.history)
       self.user_table.update_user(updated_user)
 
     print("Done updating user bet history")

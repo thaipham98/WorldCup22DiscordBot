@@ -16,20 +16,27 @@ from bet_type import BetType
 from updator import Updator
 import copy
 from result import get_result_shorthand
+import pytz
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
+
+# db['user'].clear()
+# db['match'].clear()
 #client = commands.Bot(intents=discord.Intents.all())
 #client = discord.Client(intents=intents)
 token = os.getenv('TOKEN')
 bot_id = int(os.getenv('BOT_ID'))
 guild_id = int(os.getenv('GUILD_ID'))
 events_api = Event_API()
-bet_model = BetModel()
-updator = Updator()
-#tree = app_commands.CommandTree(client)
+
+def get_user_table():
+  return UserTable()
+
+def get_match_table():
+  return MatchTable()
 
 
 class aclient(discord.Client):
@@ -50,8 +57,7 @@ class aclient(discord.Client):
 client = aclient()
 tree = app_commands.CommandTree(client)
 #db["user"].clear()
-user_table = UserTable()
-match_table = MatchTable()
+
 migration = Migration()
 
 # user1 = User("12321", "a", "b",
@@ -106,7 +112,12 @@ def get_daily_bet():
   today = "{:02d}".format(current_time.year) + "{:02d}".format(
     current_time.month) + "{:02d}".format(current_time.day)
   # daily_matches = events_api.get_upcoming_daily_events(today)
+  # TODO: replace this temp date with today date above
+  #daily_matches = events_api.get_upcoming_daily_events(today)
   daily_matches = events_api.get_upcoming_daily_events('20221121')
+  bet_model = BetModel()
+
+  print(daily_matches)
   daily_bet = bet_model.from_daily_matches_to_daily_bet(daily_matches)
   return daily_bet
 
@@ -137,7 +148,8 @@ async def create_player(interaction: discord.Interaction, user_id: str,
     return
 
   if from_admin(interaction):
-    user_entity = user_table.view_user(user_id)
+    
+    user_entity = get_user_table().view_user(user_id)
     if user_entity is not None:
       await interaction.response.send_message(
         content='User with id = {0} already existed'.format(user_id))
@@ -146,7 +158,7 @@ async def create_player(interaction: discord.Interaction, user_id: str,
         interaction, user_id, channel_name)
       user_entity = User(user.id, user.name, user_channel.id,
                          user_channel.name, 0, 0, 0, 0, {})
-      user_table.add_user(user_entity)
+      get_user_table().add_user(user_entity)
       await interaction.response.send_message(
         content="Channel {0} is created for {1}".format(
           channel_name, user.name))
@@ -158,13 +170,13 @@ async def create_player(interaction: discord.Interaction, user_id: str,
 
 
 async def kick_user(interaction, user_id):
-  user_entity = user_table.view_user(user_id)
+  user_entity = get_user_table().view_user(user_id)
   if user_entity is None:
     print("There is no user with id = {0} a".format(user_id))
     return 0
 
   channel_id = user_entity.channel_id
-  user_table.delete_user(user_id)
+  get_user_table().delete_user(user_id)
 
   user = client.get_user(int(user_id))
   await interaction.guild.kick(user)
@@ -187,7 +199,7 @@ async def delete_player(interaction: discord.Interaction, user_id: str):
     )
     return
   #channel_id = interaction.channel_id
-  print("from delete_player", db['user'])
+  #print("from delete_player", db['user'])
   if from_admin(interaction):
     user_channel_id = await kick_user(interaction, user_id)
     if user_channel_id:
@@ -233,24 +245,30 @@ async def update_scores(interaction: discord.Interaction):
     #del db['user']['']
 
     #print(db['match'])
-    # db['match']['4853741']['result'] = '1-0'
+    # db['match']['4853741']['result'] = '1-2'
     # db['match']['4853741']['is_over'] = True
 
-    # db['match']['4853743']['result'] = '0-1'
+    # db['match']['4853743']['result'] = '1-1'
     # db['match']['4853743']['is_over'] = True
 
-    # db['match']['5118542']['result'] = '1-1'
+    # db['match']['5118542']['result'] = '3-1'
     # db['match']['5118542']['is_over'] = True
 
-    print(db['match']['4853741'])
-    print(db['match']['4853743'])
-    print(db['match']['5118542'])
+    # print(db['match']['4853741'])
+    # print(db['match']['4853743'])
+    # print(db['match']['5118542'])
 
     # db['user']['775984015525543967']['score'] = 0
     # db['user']['775984015525543967']['win'] = 0
     # db['user']['775984015525543967']['draw'] = 0
     # db['user']['775984015525543967']['loss'] = 0
+    # db['user']['775984015525543967']['history']['4853741']['result'] = ''
+    # db['user']['775984015525543967']['history']['4853743']['result'] = ''
+
+    # db['user']['775984015525543967']['history']['5118542']['result'] = ''
+    
     #print(db['user']['775984015525543967'])
+    updator = Updator()
     #updator.update_upcoming_matches()
     updator.update_user_bet_history()
     await interaction.followup.send(content="Done updating!")
@@ -265,16 +283,19 @@ async def update_scores(interaction: discord.Interaction):
 async def remind_players(interaction: discord.Interaction):
   #channel_id = interaction.channel_id
   if from_admin(interaction):
-    users = user_table.view_all()
+    users = get_user_table().view_all()
     daily_bet = get_daily_bet()
 
     if len(daily_bet) == 0:
       await interaction.response.send_message("There are not matches today")
       return
 
-    embed_contents = [
-      generate_bet_item(bet_detail) for bet_detail in daily_bet
-    ]
+    embed_contents = []
+    for bet_detail in daily_bet:
+      match_id = bet_detail.match_id
+      match = get_match_table().view_match(str(match_id))
+      match_info = match.to_payload()
+      embed_contents.append(generate_bet_item(bet_detail, match_info))
 
     await interaction.response.send_message(content="Reminded all users.")
     for user in users:
@@ -282,7 +303,7 @@ async def remind_players(interaction: discord.Interaction):
       channel = client.get_channel(user.channel_id)  #channel id here
       if channel is not None:
         await channel.send(
-          "Reminder: There are {0} matches today. Please go bet with /bet.".
+          "Nhắc nhẹ: Hnay có {0} trận nhé. Mấy ông thần vào /bet hộ cái".
           format(len(daily_bet)))
         for embed in embed_contents:
           await channel.send(embed=embed)
@@ -293,10 +314,20 @@ async def remind_players(interaction: discord.Interaction):
     )
 
 
-def generate_bet_item(bet_detail):
+def formatTime(epoch):
+  tz = pytz.timezone('Asia/Ho_Chi_Minh')
+  dt = datetime.datetime.fromtimestamp(epoch, tz)
+  # print it
+  return dt.strftime('%d/%m/%Y %H:%M')
+
+
+def generate_bet_item(bet_detail, match_info):
+  print(match_info)
   embed_content = discord.Embed(
     type='rich',
     title=f'{bet_detail.home} (home) - {bet_detail.away} (away)',
+    description=f'{formatTime(match_info["time"])} VN time'
+    if match_info else None,
     colour=discord.Colour.from_str('#7F1431'))
   embed_content.add_field(name='Chấp',
                           value=bet_detail.asian_handicap,
@@ -308,8 +339,7 @@ def generate_bet_item(bet_detail):
 
 
 def update_selection_for_user(user_id, match_id, selection):
-  #TODO
-  user = user_table.view_user(user_id)
+  user = get_user_table().view_user(user_id)
   if user is None:
     return
 
@@ -317,7 +347,7 @@ def update_selection_for_user(user_id, match_id, selection):
 
   updated_user.history[match_id]['bet_option'] = selection
 
-  user_table.update_user(updated_user)
+  get_user_table().update_user(updated_user)
 
 
 def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
@@ -346,7 +376,6 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
                   disabled=not bet_changable or match_info['is_over'])
 
   async def on_select_callback(interaction):
-    # TODO: call some func to make the bet
     if not bet_changable:
       await interaction.response.edit_message(
         content='quá giờ r đừng có ăn gian', view=None)
@@ -365,7 +394,7 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
 
 async def send_bet_message(interaction, bet_detail, user_bet_for_match,
                            match_info):
-  embed_content = generate_bet_item(bet_detail)
+  embed_content = generate_bet_item(bet_detail, match_info)
   view = generate_bet_actions(bet_detail, user_bet_for_match, match_info)
   await interaction.followup.send(content='Lên kèo',
                                   embeds=[embed_content],
@@ -377,20 +406,20 @@ async def bet(interaction: discord.Interaction):
   daily_bet = get_daily_bet()
 
   user_id = interaction.user.id
-  user = user_table.view_user(str(user_id))
+  user = get_user_table().view_user(str(user_id))
   user_record = user.to_payload()
   user_bet_history = user_record["history"]
 
   if len(daily_bet) == 0:
     await interaction.response.send_message(
-      content='There are no matches today.')
+      content='Hôm nay ko có trận đâu bạn ei.')
     return
   await interaction.response.send_message(content='All kèo')
 
   for bet_detail in daily_bet:
     match_id = bet_detail.match_id
 
-    match = match_table.view_match(str(match_id))
+    match = get_match_table().view_match(str(match_id))
     match_info = match.to_payload()
 
     user_bet_for_match = user_bet_history[str(match_id)] if str(
@@ -399,20 +428,10 @@ async def bet(interaction: discord.Interaction):
                            match_info)
 
 
-# def generate_user_match_history_str(history):
-#   history_info = []
-#   for match_id, match_detail in history:
-#     history_info.append(match_detail["result"])
-#   history_str = ' '.join(
-#     history_info) if len(history_info) > 0 else 'No match found'
-#   return history_str
-
-
 def generate_user_summary(user_record, rank=None, isOwner=False):
   history = user_record.history
-  # history_str = generate_user_match_history_str(history)
-  history_str = ' '.join([get_result_shorthand(item) for item in history])
-
+  history_str = ' '.join([get_result_shorthand(item) for item in history
+                          ]) if len(history) > 0 else 'No match found'
   embed_content = discord.Embed(
     type='rich',
     title=user_record.name + (f' #{rank}' if rank is not None else '') +
@@ -433,7 +452,9 @@ def generate_user_summary(user_record, rank=None, isOwner=False):
 @tree.command(name="profile", description="Show your record")
 async def view_me(interaction: discord.Interaction):
   user_id = interaction.user.id
-  user = user_table.view_user(str(user_id))
+  #print(db['user'])
+  #print(user_table.table)
+  user = get_user_table().view_user(str(user_id))
   user_record = user.to_record()
   print(user_record)
   embed_content = generate_user_summary(user_record, isOwner=True)
@@ -444,7 +465,7 @@ async def view_me(interaction: discord.Interaction):
 @tree.command(name="record", description="Show all records")
 async def view_all_record(interaction: discord.Interaction):
   user_id = str(interaction.user.id)
-  users = user_table.view_all()
+  users = get_user_table().view_all()
   user_records = [user.to_record() for user in users]
   user_records = sorted(user_records,
                         key=lambda x: (x.score, x.win, x.draw, -x.loss),
@@ -467,25 +488,25 @@ async def help(interaction):
     url=
     'https://lh3.googleusercontent.com/pw/AL9nZEXNJywRGO5N_wo6lmEf4L0S6uDroOgskWeCtBbcTm8kuunOI_Jm-RS1MwnaGLPO8ZNBc7QgbtXJcBLR5U6SG3cnmXauJ157I-1rb6lc6SN3_qeRWFAoLFLd8gbUmsxRa7gQKit_RXvca0gKhz2rsW_D=s887-no?authuser=0'
   )
-  embed_content.add_field(name=':goggles: - /profile',
+  embed_content.add_field(name=':goggles:  `/profile`',
                           value='Check your summary stats',
                           inline=False)
-  embed_content.add_field(name=':bar_chart: - /record',
+  embed_content.add_field(name=':bar_chart:  `/record`',
                           value='See the leaderboard of all the bettors',
                           inline=False)
-  embed_content.add_field(name=':game_die: - /bet',
+  embed_content.add_field(name=':game_die:  `/bet`',
                           value='Make your bet on daily matches',
                           inline=False)
-  embed_content.add_field(name=':skull: - /clear',
+  embed_content.add_field(name=':skull:  `/clear`',
                           value='Clear your chat',
                           inline=False)
-  embed_content.add_field(name=':question: - /help', value='??', inline=False)
   await interaction.response.send_message(content='', embeds=[embed_content])
 
 
 #print(db["user"])
 #print(db['match'])
 #print(user_table.table)
+
 client.run(token)
 
 #db.clear()

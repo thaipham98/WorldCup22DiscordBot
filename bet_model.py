@@ -1,3 +1,4 @@
+from replit import db
 from events_api import Event_API
 from daily_bet import DailyBet
 from match_table import MatchTable
@@ -11,11 +12,15 @@ class BetModel:
     if daily_matches['success'] != 1:
       return None
 
+    print(self.match_table.table)
+    print(db['match'])
     daily_bet = []
     for result in daily_matches['results']:
       match_id = result['id']
       match = self.match_table.view_match(match_id)
-      daily_bet.append(match.to_daily_bet())
+      print(match)
+      if match is not None:
+        daily_bet.append(match.to_daily_bet())
 
     return daily_bet
       

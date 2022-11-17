@@ -1,7 +1,7 @@
 from enum import Enum
 
 converter = {
-  'HOME': 'H',
+  'WIN': 'W',
   'HALF_WIN': 'HW',
   'LOSS': 'L',
   'HALF_LOSS': 'HL',
