@@ -115,7 +115,51 @@ class Updator:
           self.match_table.update_match(updated_matches_map[match_id])
     print("Done updating upcoming matches")
 
-  def update_user_bet_history(self):
+
+  def update_user_bet_history(self, user_id):
+    user = self.user_table.view_user(str(user_id))
+    matches = self.match_table.list_all_matches()
+    updated_user = copy.deepcopy(user)
+    for match in matches:
+      match_id = match.id
+      if match_id not in updated_user.history:
+        updated_user.history[match_id] = {
+          "bet_option": BetType.UNCHOSEN.value,
+          "result": "",
+          'time': match.time
+        }
+      if match.is_over:
+        #user did not bet
+        #updated_user = copy.deepcopy(user)
+        if updated_user.history[match_id][
+            'bet_option'] == BetType.UNCHOSEN.value:
+          updated_user.history[match_id]['bet_option'] = randint(1, 4)
+
+        #print(updated_user.history[match_id]['result'] == '')
+        #print(updated_user.history[match_id]['result'] == '')
+        if updated_user.history[match_id]['result'] == '':
+          result = self.calculator.calculate(
+            updated_user.history[match_id]['bet_option'],
+            match.asian_handicap, match.over_under, match.result)
+          #print(updated_user.name, match_id, result.name)
+
+          updated_user.history[match_id]['result'] = result.name
+          #print(match_id, updated_user.history[match_id]['result'])
+          updated_user.score += result.value
+
+          if result == Result.WIN or result == Result.HALF_WIN:
+            updated_user.win += 1
+
+          if result == Result.LOSS or result == Result.HALF_LOSS:
+            updated_user.loss += 1
+
+          if result == Result.DRAW:
+            updated_user.draw += 1
+
+    #print(updated_user.name, updated_user.score, updated_user.history)
+    self.user_table.update_user(updated_user)
+
+  def update_all_user_bet_history(self):
     users = self.user_table.view_all()
 
     matches = self.match_table.list_all_matches()
@@ -160,16 +204,16 @@ class Updator:
               'bet_option'] == BetType.UNCHOSEN.value:
             updated_user.history[match_id]['bet_option'] = randint(1, 4)
 
-          print(updated_user.history[match_id]['result'] == '')
-          print(updated_user.history[match_id]['result'] == '')
+          #print(updated_user.history[match_id]['result'] == '')
+          #print(updated_user.history[match_id]['result'] == '')
           if updated_user.history[match_id]['result'] == '':
             result = self.calculator.calculate(
               updated_user.history[match_id]['bet_option'],
               match.asian_handicap, match.over_under, match.result)
-            print(updated_user.name, match_id, result.name)
+            #print(updated_user.name, match_id, result.name)
 
             updated_user.history[match_id]['result'] = result.name
-            print(match_id, updated_user.history[match_id]['result'])
+            #print(match_id, updated_user.history[match_id]['result'])
             updated_user.score += result.value
 
             if result == Result.WIN or result == Result.HALF_WIN:
@@ -181,7 +225,7 @@ class Updator:
             if result == Result.DRAW:
               updated_user.draw += 1
 
-      print(updated_user.name, updated_user.score, updated_user.history)
+      #print(updated_user.name, updated_user.score, updated_user.history)
       self.user_table.update_user(updated_user)
 
     print("Done updating user bet history")

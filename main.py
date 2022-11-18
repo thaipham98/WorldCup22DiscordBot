@@ -17,13 +17,13 @@ from updator import Updator
 import copy
 from result import get_result_shorthand
 import pytz
+from discord.ext import tasks, commands
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-
-# db['user'].clear()
+#db['user'].clear()
 # db['match'].clear()
 #client = commands.Bot(intents=discord.Intents.all())
 #client = discord.Client(intents=intents)
@@ -32,8 +32,10 @@ bot_id = int(os.getenv('BOT_ID'))
 guild_id = int(os.getenv('GUILD_ID'))
 events_api = Event_API()
 
+
 def get_user_table():
   return UserTable()
+
 
 def get_match_table():
   return MatchTable()
@@ -60,6 +62,56 @@ tree = app_commands.CommandTree(client)
 
 migration = Migration()
 
+
+@tasks.loop(seconds=5.0)
+async def test():
+  print("test")
+  channel = client.get_channel(1042862934482763917)  #channel id here
+  if channel is not None:
+    await channel.send("test tset test")
+
+
+# @client.event
+# async def on_ready():
+#   # test.start()
+#   remind_cron_job.start()
+
+# @tasks.loop(seconds=60*60*3)
+# def update_score_cron_job():
+#   # call API
+#   # update to DB
+#   pass
+
+
+@tasks.loop(hours=3)
+async def remind_cron_job():
+  channel = client.get_channel(int(
+    os.getenv('ADMIN_CHANNEL_ID')))  #channel id here
+  users = get_user_table().view_all()
+  daily_bet = get_daily_bet()
+
+  if len(daily_bet) == 0:
+    await channel.send("No matches")
+    return
+
+  embed_contents = []
+  for bet_detail in daily_bet:
+    match_id = bet_detail.match_id
+    match = get_match_table().view_match(str(match_id))
+    match_info = match.to_payload()
+    embed_contents.append(generate_bet_item(bet_detail, match_info))
+
+  for user in users:
+    channel = client.get_channel(user.channel_id)  #channel id here
+    if channel is not None:
+      await channel.send(
+        "Nhắc nhẹ: Hnay có {0} trận nhé. Mấy ông thần vào /bet hộ cái".format(
+          len(daily_bet)))
+      for embed in embed_contents:
+        await channel.send(embed=embed)
+  channel.send("Automatically sent")
+
+
 # user1 = User("12321", "a", "b",
 #                          "c", 1, 2, 0, 10000, {})
 # user2 = User("1321", "fadsf", "b",
@@ -83,14 +135,14 @@ migration = Migration()
 # user_table.add_user(user7)
 #print(db["user"])
 
-text_channel_name = 'Text Channels'
+bet_channel_name = 'Bet Channels'
 
 
 async def create_private_channel(interaction, user_id, channel_name):
   user = client.get_user(int(user_id))
   bot = client.get_user(bot_id)
   guild = interaction.guild
-  category = discord.utils.get(guild.categories, name=text_channel_name)
+  category = discord.utils.get(guild.categories, name=bet_channel_name)
   overwrites = {
     guild.default_role: discord.PermissionOverwrite(read_messages=False),
     user: discord.PermissionOverwrite(view_channel=True),
@@ -98,7 +150,7 @@ async def create_private_channel(interaction, user_id, channel_name):
   }
 
   guild = interaction.guild
-  category = discord.utils.get(guild.categories, name=text_channel_name)
+  category = discord.utils.get(guild.categories, name=bet_channel_name)
 
   channel = await guild.create_text_channel(channel_name,
                                             overwrites=overwrites,
@@ -117,9 +169,17 @@ def get_daily_bet():
   daily_matches = events_api.get_upcoming_daily_events('20221121')
   bet_model = BetModel()
 
-  print(daily_matches)
+  #print(daily_matches)
   daily_bet = bet_model.from_daily_matches_to_daily_bet(daily_matches)
   return daily_bet
+
+
+def from_right_user(interaction):
+  user_id = str(interaction.user.id)
+  user = get_user_table().view_user(user_id)
+  if user is None:
+    return False
+  return interaction.channel.id == user.channel_id
 
 
 def from_admin(interaction):
@@ -131,24 +191,81 @@ def from_admin(interaction):
 
 @tree.command(name="clear", description="Clear all chat history")
 async def clear_chat(interaction: discord.Interaction):
+  if interaction.user.id == int(
+      os.getenv('ADMIN_ID_1')) or interaction.user.id == int(
+        os.getenv('ADMIN_ID_2')):
+    await interaction.response.send_message(
+      content="All messages have been cleared")
+    await interaction.channel.purge()
+    return
+
+  if from_register_channel(interaction):
+    await interaction.response.send_message(
+      content='You can only use /register in this channel')
+    return
+
+  if not from_right_user(interaction):
+    await interaction.response.send_message(
+      content='Please go to your channel {0} to use this command'.format(
+        interaction.channel.name))
+    return
   await interaction.response.send_message(
     content="All messages have been cleared")
   await interaction.channel.purge()
+
+
+register_channel_id = 1043080542335291442
+
+
+def from_register_channel(interaction):
+  return interaction.channel.id == register_channel_id
+
+
+@tree.command(name="register", description="Register")
+async def create_player(interaction: discord.Interaction, channel_name: str):
+  if not from_register_channel(interaction):
+    await interaction.response.send_message(
+      content="Please go to Welcome/register channel to register")
+    return
+
+  user_id = str(interaction.user.id)
+  user_entity = get_user_table().view_user(user_id)
+  if user_entity is not None:
+    await interaction.response.send_message(
+      content=
+      'You already registered a channel with the name of {0} for this account'.
+      format(user_entity.channel_name))
+    return
+
+  user, user_channel = await create_private_channel(interaction, user_id,
+                                                    channel_name)
+  embed_content = get_help_embed()
+  await user_channel.send(content="Welcome {0}!".format(user.name),
+                          embeds=[embed_content])
+  user_entity = User(user.id, user.name, user_channel.id, user_channel.name, 0,
+                     0, 0, 0, {})
+  get_user_table().add_user(user_entity)
+  updator = Updator()
+  updator.update_user_bet_history(user.id)
+  await interaction.response.send_message(
+    content=
+    "Channel {0} is created for {1}. Please go to your right channel in Bet Channels."
+    .format(channel_name, user.name))
 
 
 @tree.command(name="create", description="Create a new player")
 async def create_player(interaction: discord.Interaction, user_id: str,
                         channel_name: str):
   #user_id = int(user_id)
-  guild = client.get_guild(guild_id)
-  if guild.get_member(int(user_id)) is None:
-    await interaction.response.send_message(
-      content='User with id = {0} does not exist in the server'.format(user_id)
-    )
-    return
 
   if from_admin(interaction):
-    
+    guild = client.get_guild(guild_id)
+    if guild.get_member(int(user_id)) is None:
+      await interaction.response.send_message(
+        content='User with id = {0} does not exist in the server'.format(
+          user_id))
+      return
+
     user_entity = get_user_table().view_user(user_id)
     if user_entity is not None:
       await interaction.response.send_message(
@@ -156,9 +273,14 @@ async def create_player(interaction: discord.Interaction, user_id: str,
     else:
       user, user_channel = await create_private_channel(
         interaction, user_id, channel_name)
+      embed_content = get_help_embed()
+      await user_channel.send(content="Welcome {0}!".format(user.name),
+                              embeds=[embed_content])
       user_entity = User(user.id, user.name, user_channel.id,
                          user_channel.name, 0, 0, 0, 0, {})
       get_user_table().add_user(user_entity)
+      updator = Updator()
+      updator.update_user_bet_history(user.id)
       await interaction.response.send_message(
         content="Channel {0} is created for {1}".format(
           channel_name, user.name))
@@ -192,15 +314,17 @@ async def delete_user_channel(user_channel_id):
 @tree.command(name="delete", description="Delete an existing player")
 async def delete_player(interaction: discord.Interaction, user_id: str):
   #user_id = int(user_id)
-  guild = client.get_guild(guild_id)
-  if guild.get_member(int(user_id)) is None:
-    await interaction.response.send_message(
-      content='User with id = {0} does not exist in the server'.format(user_id)
-    )
-    return
+
   #channel_id = interaction.channel_id
   #print("from delete_player", db['user'])
   if from_admin(interaction):
+
+    guild = client.get_guild(guild_id)
+    if guild.get_member(int(user_id)) is None:
+      await interaction.response.send_message(
+        content='User with id = {0} does not exist in the server'.format(
+          user_id))
+      return
     user_channel_id = await kick_user(interaction, user_id)
     if user_channel_id:
       await delete_user_channel(user_channel_id)
@@ -266,11 +390,11 @@ async def update_scores(interaction: discord.Interaction):
     # db['user']['775984015525543967']['history']['4853743']['result'] = ''
 
     # db['user']['775984015525543967']['history']['5118542']['result'] = ''
-    
+
     #print(db['user']['775984015525543967'])
     updator = Updator()
-    #updator.update_upcoming_matches()
-    updator.update_user_bet_history()
+    updator.update_upcoming_matches()
+    updator.update_all_user_bet_history()
     await interaction.followup.send(content="Done updating!")
   else:
     await interaction.response.send_message(
@@ -307,6 +431,7 @@ async def remind_players(interaction: discord.Interaction):
           format(len(daily_bet)))
         for embed in embed_contents:
           await channel.send(embed=embed)
+
   else:
     await interaction.response.send_message(
       content=
@@ -403,6 +528,16 @@ async def send_bet_message(interaction, bet_detail, user_bet_for_match,
 
 @tree.command(name="bet", description="Choose a betting option")
 async def bet(interaction: discord.Interaction):
+  if from_register_channel(interaction):
+    await interaction.response.send_message(
+      content='You can only use /register in this channel')
+    return
+
+  if not from_right_user(interaction):
+    await interaction.response.send_message(
+      content='Please go to your channel {0} to use this command'.format(
+        interaction.channel.name))
+    return
   daily_bet = get_daily_bet()
 
   user_id = interaction.user.id
@@ -414,7 +549,7 @@ async def bet(interaction: discord.Interaction):
     await interaction.response.send_message(
       content='Hôm nay ko có trận đâu bạn ei.')
     return
-  await interaction.response.send_message(content='All kèo')
+  await interaction.response.send_message(content='Các trận hôm nay:')
 
   for bet_detail in daily_bet:
     match_id = bet_detail.match_id
@@ -434,8 +569,8 @@ def generate_user_summary(user_record, rank=None, isOwner=False):
                           ]) if len(history) > 0 else 'No match found'
   embed_content = discord.Embed(
     type='rich',
-    title=user_record.name + (f' #{rank}' if rank is not None else '') +
-    (' *' if isOwner else ''),
+    title=user_record.channel_name +
+    (f' #{rank}' if rank is not None else '') + (' *' if isOwner else ''),
     colour=discord.Colour.green()
     if isOwner else discord.Colour.from_str('#7F1431'))
   embed_content.add_field(
@@ -451,6 +586,15 @@ def generate_user_summary(user_record, rank=None, isOwner=False):
 
 @tree.command(name="profile", description="Show your record")
 async def view_me(interaction: discord.Interaction):
+  if from_register_channel(interaction):
+    await interaction.response.send_message(
+      content='You can only use /register in this channel')
+    return
+  if not from_right_user(interaction):
+    await interaction.response.send_message(
+      content='Please go to your channel {0} to use this command'.format(
+        interaction.channel.name))
+    return
   user_id = interaction.user.id
   #print(db['user'])
   #print(user_table.table)
@@ -464,6 +608,15 @@ async def view_me(interaction: discord.Interaction):
 
 @tree.command(name="record", description="Show all records")
 async def view_all_record(interaction: discord.Interaction):
+  if from_register_channel(interaction):
+    await interaction.response.send_message(
+      content='You can only use /register in this channel')
+    return
+  if not from_right_user(interaction):
+    await interaction.response.send_message(
+      content='Please go to your channel {0} to use this command'.format(
+        interaction.channel.name))
+    return
   user_id = str(interaction.user.id)
   users = get_user_table().view_all()
   user_records = [user.to_record() for user in users]
@@ -474,12 +627,11 @@ async def view_all_record(interaction: discord.Interaction):
     generate_user_summary(record, idx + 1, record.user_id == user_id)
     for idx, record in enumerate(user_records)
   ]
-  await interaction.response.send_message(content='view all records',
+  await interaction.response.send_message(content='Bảng xếp hạng bét thủ',
                                           embeds=embed_content)
 
 
-@tree.command(name="help", description="Show rules and commands")
-async def help(interaction):
+def get_help_embed():
   embed_content = discord.Embed(type='rich',
                                 title='🎯 Help Page!',
                                 colour=discord.Colour.from_str('#7F1431'),
@@ -487,6 +639,10 @@ async def help(interaction):
   embed_content.set_thumbnail(
     url=
     'https://lh3.googleusercontent.com/pw/AL9nZEXNJywRGO5N_wo6lmEf4L0S6uDroOgskWeCtBbcTm8kuunOI_Jm-RS1MwnaGLPO8ZNBc7QgbtXJcBLR5U6SG3cnmXauJ157I-1rb6lc6SN3_qeRWFAoLFLd8gbUmsxRa7gQKit_RXvca0gKhz2rsW_D=s887-no?authuser=0'
+  )
+  embed_content.set_image(
+    url=
+    'https://lh3.googleusercontent.com/lsAHvdaS7bpcxa1IVxEmtrJdcuj890Qddt_FuyECWJ_U7W4uNaCLopgu1hBon9oFCe_Sifm0ngxWt_C5QlE3pToKq4J0n41FGCagT7mHnMTo0t4oOWmjKaGPQm24jEogua-yiZ8IswluKmOsbb1fbsJD2cB9CYLw-4PwLDGWR7vth-Toqq1znlrFiFERWN-lsx5UZGnxnev83FcpBmyAFwx5rqzzN6zvSm6BI2QbMkHRkAGfu6iBD_7bQQ4XDI_akEHOAlyR0gf6uPtFy2Ey6XdfsXwemkrydtFTS5kcTDZrAlCIhivl1SsoHXZZCMSTOg8kKBx6XsUkHNgntWNYnnPA5Bs5ggEChNR9FwHtq1TkVV-GA-YcRNDe01B6Xeu3FwTLLEoGXE3JiTxT97d6lVNGLsNkDzrRtVmWJxikMR9j-rDgW3zktqlHOOdohejKdDPioVMPT7D3dvRRqWUXfnP4FjIGcLxHMh9LwrrKN1DXS8sVLHwjSObMe1Zdtr6WrLn0X43y2CB2MmrkKVLTnzuPCu4b93NtVFIR3AKur9t3PhNZl7O7WS0jOll3JzPpl8UstIpeo12RATNjUSLmAvtdTryg4H6Y9dayBoWZnLjFmxnn0viO7mY5IiIjMRKMNQCiZms9oY6Q7giDlPHYzR8Bg9IaJynOb1woSz-u1QCIPatBgPVlYYbulXUHsv3w7dcE-DpuqcbdF5uNvHFoET0z_J6j_vpievqO4BgukjFPKaKXuHKilOL0WF9XQdzgZ2dHsON5ARZXVwWHaj5GHYi6tm5xjwBAbCglnirz1bQBElNc96_ptkKI6H4cwKIaWHt6E6_li1nqSrFCiWhIZnVShEtGSKZawX4WXKq6YFIGNrWwozqYl2CJVR7ks_MmoSTAnGfG4WYQ_B5_cJ-WsPJsNCZe6MEOGNCi7UHdeOz7l69Ls0EDjQwUTjdmvhCqMvho7zv9cbRPaw8BtXV2TcB6hszPJEdGJlnjlhONcoQXxcFXb_5s6WE0YLsMObkLIVszlexaxZThnewzJEt-SSYYMDaRQAH1NxgQOr_8uDpdOruvNsgijEGlvg9htdw=w2124-h960-no?authuser=0'
   )
   embed_content.add_field(name=':goggles:  `/profile`',
                           value='Check your summary stats',
@@ -500,26 +656,22 @@ async def help(interaction):
   embed_content.add_field(name=':skull:  `/clear`',
                           value='Clear your chat',
                           inline=False)
+  return embed_content
+
+
+@tree.command(name="help", description="Show rules and commands")
+async def help(interaction):
+  if from_register_channel(interaction):
+    await interaction.response.send_message(
+      content='You can only use /register in this channel')
+    return
+  if not from_right_user(interaction):
+    await interaction.response.send_message(
+      content='Please go to your channel {0} to use this command'.format(
+        interaction.channel.name))
+    return
+  embed_content = get_help_embed()
   await interaction.response.send_message(content='', embeds=[embed_content])
 
 
-#print(db["user"])
-#print(db['match'])
-#print(user_table.table)
-
 client.run(token)
-
-#db.clear()
-#db["match"] = {}
-#db["user"] = {}
-
-#match_table = db["match"]
-#migration = Migration()
-#migration.insert_matches_data()
-#print(db.items())
-#keys = db.keys()
-#dict = db.items()
-#print(keys)
-#print(db['match'])
-#print(dict['match'])
-#print(db.keys)

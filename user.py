@@ -33,7 +33,7 @@ class User:
 
     count = min(most_recent_match, len(bet_history))
 
-    return Record(self.user_id, self.name, self.win, self.draw, self.loss,
+    return Record(self.user_id, self.name, self.channel_name, self.win, self.draw, self.loss,
                   self.score, bet_history[-count:])
 
   def to_payload(self):

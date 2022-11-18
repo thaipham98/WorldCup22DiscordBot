@@ -1,6 +1,7 @@
 class Record:
-  def __init__(self, user_id, name, win, draw, loss, score, history):
+  def __init__(self, user_id, name, channel_name, win, draw, loss, score, history):
     self.user_id = user_id
+    self.channel_name = channel_name
     self.name = name
     self.win = win
     self.draw = draw

@@ -12,8 +12,8 @@ class BetModel:
     if daily_matches['success'] != 1:
       return None
 
-    print(self.match_table.table)
-    print(db['match'])
+    #print(self.match_table.table)
+    #print(db['match'])
     daily_bet = []
     for result in daily_matches['results']:
       match_id = result['id']

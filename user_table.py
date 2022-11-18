@@ -19,7 +19,7 @@ class UserTable:
     # print("from add_user", db['user'])
 
   def delete_user(self, user_id):
-    print(db['user'])
+    #print(db['user'])
     if user_id in self.table:
       del self.table[user_id]
     
