@@ -4,6 +4,7 @@ from discord import app_commands
 from discord.ui import Select, View, Button
 from replit import db
 import os
+import json
 import random
 from migration import Migration
 from user_table import UserTable
@@ -12,12 +13,13 @@ from user import User
 from events_api import Event_API
 import datetime
 from bet_model import BetModel
-from bet_type import BetType
+from bet_type import BetType, bet_type_converter
 from updator import Updator
 import copy
 from result import get_result_shorthand
 import pytz
-from discord.ext import tasks, commands
+from discord.ext import tasks
+import requests
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -27,6 +29,8 @@ intents.members = True
 # db['match'].clear()
 #client = commands.Bot(intents=discord.Intents.all())
 #client = discord.Client(intents=intents)
+db_url = os.getenv('REPLIT_DB_URL')
+#print(db_url)
 token = os.getenv('TOKEN')
 bot_id = int(os.getenv('BOT_ID'))
 guild_id = int(os.getenv('GUILD_ID'))
@@ -58,40 +62,112 @@ class aclient(discord.Client):
 
 client = aclient()
 tree = app_commands.CommandTree(client)
+
 #db["user"].clear()
 
-migration = Migration()
+
+def backup_table(name):
+  tz = pytz.timezone('Asia/Ho_Chi_Minh')
+  dt = datetime.datetime.now(tz)
+  today_date_str = dt.strftime('%Y-%m-%d-%H-%M')
+  request_url = f"{db_url}/{name}"
+  res = requests.get(request_url)
+
+  if not os.path.exists('backup'):
+    os.mkdir('backup')
+
+  if not os.path.exists(f"backup/{today_date_str}"):
+    os.mkdir(f"backup/{today_date_str}")
+
+  with open(f"backup/{today_date_str}/{name}_table.json", "w") as outfile:
+    outfile.write(res.text)
 
 
-@tasks.loop(seconds=5.0)
-async def test():
-  print("test")
-  channel = client.get_channel(1042862934482763917)  #channel id here
-  if channel is not None:
-    await channel.send("test tset test")
+def backup_database():
+  backup_table(name='user')
+  backup_table(name='match')
 
 
-# @client.event
-# async def on_ready():
-#   # test.start()
-#   remind_cron_job.start()
+# backup_database()
 
-# @tasks.loop(seconds=60*60*3)
-# def update_score_cron_job():
-#   # call API
-#   # update to DB
-#   pass
+# @tasks.loop(seconds=5.0)
+# async def test():
+#   print("test")
+#   channel = client.get_channel(1042862934482763917)  #channel id here
+#   if channel is not None:
+#     await channel.send("test tset test")
 
 
-@tasks.loop(hours=3)
+@client.event
+async def on_ready():
+  remind_cron_job.start()
+  update_result_cron_job.start()
+  update_odd_cron_job.start()
+  # test_cron.start()
+
+
+#warmup_update_time = datetime.time(hour=8, minute=42)
+
+first_match_update_time = datetime.time(hour=12, minute=30)
+second_match_update_time = datetime.time(hour=15, minute=30)
+third_match_update_time = datetime.time(hour=18, minute=30)
+forth_match_update_time = datetime.time(hour=21, minute=30)
+
+# warmup_update_time = datetime.time(hour=17, minute=42)
+# first_match_update_time = datetime.time(hour=17, minute=43)
+# second_match_update_time = datetime.time(hour=17, minute=44)
+# third_match_update_time = datetime.time(hour=17, minute=45)
+# @tasks.loop(time=[
+#   warmup_update_time, first_match_update_time, second_match_update_time,
+#   third_match_update_time
+# ])
+# async def test_cron():
+#   admin_channel = client.get_channel(int(os.getenv('ADMIN_CHANNEL_ID')))
+#   await admin_channel.send("test")
+
+
+odd_update_time = datetime.time(hour=0)
+@tasks.loop(time=[odd_update_time])
+async def update_odd_cron_job():
+  print("auto update odd ...")
+  updator = Updator()
+  updator.update_upcoming_matches()
+  
+  admin_channel = client.get_channel(int(os.getenv('ADMIN_CHANNEL_ID')))
+  await admin_channel.send("Auto: updated new odds")
+
+@tasks.loop(time=[
+  first_match_update_time,
+  second_match_update_time, third_match_update_time, forth_match_update_time
+])
+async def update_result_cron_job():
+  print("auto update running ...")
+  updator = Updator()
+  updator.update_ended_matches()
+  updator.update_all_user_bet_history()
+  backup_database()
+
+  admin_channel = client.get_channel(int(os.getenv('ADMIN_CHANNEL_ID')))
+  await admin_channel.send("Auto update done")
+
+
+#morning_remind_time = datetime.time(hour=8, minute=42)
+morning_remind_time = datetime.time(hour=2)
+afternoon_remind_time = datetime.time(hour=8)
+
+import time
+
+
+@tasks.loop(time=[morning_remind_time, afternoon_remind_time])
 async def remind_cron_job():
-  channel = client.get_channel(int(
+  #print("auto remind ...")
+  admin_channel = client.get_channel(int(
     os.getenv('ADMIN_CHANNEL_ID')))  #channel id here
   users = get_user_table().view_all()
   daily_bet = get_daily_bet()
 
   if len(daily_bet) == 0:
-    await channel.send("No matches")
+    await admin_channel.send("Auto: no matches sent")
     return
 
   embed_contents = []
@@ -102,6 +178,7 @@ async def remind_cron_job():
     embed_contents.append(generate_bet_item(bet_detail, match_info))
 
   for user in users:
+    time.sleep(0.2)
     channel = client.get_channel(user.channel_id)  #channel id here
     if channel is not None:
       await channel.send(
@@ -109,7 +186,8 @@ async def remind_cron_job():
           len(daily_bet)))
       for embed in embed_contents:
         await channel.send(embed=embed)
-  channel.send("Automatically sent")
+
+  await admin_channel.send("Auto: sent reminder")
 
 
 # user1 = User("12321", "a", "b",
@@ -163,10 +241,28 @@ def get_daily_bet():
   current_time = datetime.datetime.now()
   today = "{:02d}".format(current_time.year) + "{:02d}".format(
     current_time.month) + "{:02d}".format(current_time.day)
-  # daily_matches = events_api.get_upcoming_daily_events(today)
+  #today = '20221120'
   # TODO: replace this temp date with today date above
-  #daily_matches = events_api.get_upcoming_daily_events(today)
-  daily_matches = events_api.get_upcoming_daily_events('20221121')
+  upcoming_daily_matches = events_api.get_upcoming_daily_events(today)
+  #print("upcoming:",upcoming_daily_matches)
+  inplay_matches = events_api.get_inplay_events()
+  #print("inplay:",inplay_matches)
+  ended_daily_matches = events_api.get_ended_daily_event(today)
+  #print("ended",ended_daily_matches)
+  #daily_matches = events_api.get_upcoming_daily_events('20221121')
+
+  #daily_matches = upcoming_daily_matches + inplay_matches + ended_daily_matches
+  daily_matches = []
+  if upcoming_daily_matches['success'] == 1:
+    daily_matches += upcoming_daily_matches['results']
+
+  if inplay_matches['success'] == 1:
+    daily_matches += inplay_matches['results']
+
+  if ended_daily_matches['success'] == 1:
+    daily_matches += ended_daily_matches['results']
+
+  #daily_matches = upcoming_daily_matches
   bet_model = BetModel()
 
   #print(daily_matches)
@@ -222,7 +318,7 @@ def from_register_channel(interaction):
 
 
 @tree.command(name="register", description="Register")
-async def create_player(interaction: discord.Interaction, channel_name: str):
+async def register_player(interaction: discord.Interaction, channel_name: str):
   if not from_register_channel(interaction):
     await interaction.response.send_message(
       content="Please go to Welcome/register channel to register")
@@ -240,7 +336,7 @@ async def create_player(interaction: discord.Interaction, channel_name: str):
   user, user_channel = await create_private_channel(interaction, user_id,
                                                     channel_name)
   embed_content = get_help_embed()
-  await user_channel.send(content="Welcome {0}!".format(user.name),
+  await user_channel.send(content="Welcome {0}!".format(user_channel.name),
                           embeds=[embed_content])
   user_entity = User(user.id, user.name, user_channel.id, user_channel.name, 0,
                      0, 0, 0, {})
@@ -302,7 +398,7 @@ async def kick_user(interaction, user_id):
 
   user = client.get_user(int(user_id))
   await interaction.guild.kick(user)
-  print("channel_id=", channel_id)
+  #print("channel_id=", channel_id)
   return channel_id
 
 
@@ -369,14 +465,29 @@ async def update_scores(interaction: discord.Interaction):
     #del db['user']['']
 
     #print(db['match'])
-    # db['match']['4853741']['result'] = '1-2'
-    # db['match']['4853741']['is_over'] = True
+    # db['match']['4853742']['result'] = ''
+    # db['match']['4853742']['is_over'] = False
 
     # db['match']['4853743']['result'] = '1-1'
     # db['match']['4853743']['is_over'] = True
 
     # db['match']['5118542']['result'] = '3-1'
     # db['match']['5118542']['is_over'] = True
+
+    # db['match']['4853741']['asian_handicap'] = -1.25
+    # db['match']['4853741']['over_under'] = 2.25
+
+    # #db['user']['775984015525543967']['score'] = 0
+    # #db['user']['775984015525543967']['win'] = 0
+    # #db['user']['775984015525543967']['draw'] = 0
+    # db['user']['741694621666639965']['loss'] = 1
+    # db['user']['741694621666639965']['history']['4853741']['result'] = ''
+
+    # db['user']['775984015525543967']['score'] = 20000
+    # db['user']['775984015525543967']['win'] = 2
+    # #db['user']['775984015525543967']['draw'] = 0
+    # #db['user']['775984015525543967']['loss'] = 0
+    # db['user']['775984015525543967']['history']['4853741']['result'] = ''
 
     # print(db['match']['4853741'])
     # print(db['match']['4853743'])
@@ -393,6 +504,7 @@ async def update_scores(interaction: discord.Interaction):
 
     #print(db['user']['775984015525543967'])
     updator = Updator()
+    updator.update_ended_matches()
     updator.update_upcoming_matches()
     updator.update_all_user_bet_history()
     await interaction.followup.send(content="Done updating!")
@@ -447,7 +559,7 @@ def formatTime(epoch):
 
 
 def generate_bet_item(bet_detail, match_info):
-  print(match_info)
+  #print(match_info)
   embed_content = discord.Embed(
     type='rich',
     title=f'{bet_detail.home} (home) - {bet_detail.away} (away)',
@@ -479,11 +591,11 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
   lock_time_before_match = 15 * 60
   bet_changable = int(datetime.datetime.now().timestamp()
                       ) <= bet_detail.time - lock_time_before_match
-
+  #print('generate_bet_actions', bet_detail, '\n', user_bet_for_match, '\n', match_info)
   default_bet = user_bet_for_match["bet_option"] if user_bet_for_match else None
   # FOR TEST: default_bet = BetType.OVER.value
 
-  view = View()
+  view = View(timeout=None)
   select = Select(options=[
     discord.SelectOption(label='Home',
                          value=BetType.HOME.value,
@@ -501,15 +613,21 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
                   disabled=not bet_changable or match_info['is_over'])
 
   async def on_select_callback(interaction):
-    if not bet_changable:
+    #print('on select bet changable', bet_changable)
+    select_changable = int(datetime.datetime.now().timestamp()
+                           ) <= bet_detail.time - lock_time_before_match
+    if not select_changable:
       await interaction.response.edit_message(
-        content='quá giờ r đừng có ăn gian', view=None)
+        content='Quá giờ r đừng có ăn gian', view=None)
       return
     selection = int(select.values[0])
     update_selection_for_user(str(interaction.user.id), bet_detail.match_id,
                               selection)
-    print('match id ', bet_detail.match_id, ' selected bet ', select.values[0])
-    await interaction.response.defer()
+    #print('match id ', bet_detail.match_id, ' selected bet ', select.values[0])
+    await interaction.response.send_message(
+      content=
+      f"You chose {bet_type_converter[selection]} for match {match_info['home']} - {match_info['away']} | ah: {match_info['asian_handicap']} - ou: {match_info['over_under']}"
+    )
 
   select.callback = on_select_callback
   view.add_item(select)
@@ -538,18 +656,19 @@ async def bet(interaction: discord.Interaction):
       content='Please go to your channel {0} to use this command'.format(
         interaction.channel.name))
     return
+  await interaction.response.defer()
   daily_bet = get_daily_bet()
 
+  #await interaction.response.defer()
   user_id = interaction.user.id
   user = get_user_table().view_user(str(user_id))
   user_record = user.to_payload()
   user_bet_history = user_record["history"]
 
   if len(daily_bet) == 0:
-    await interaction.response.send_message(
-      content='Hôm nay ko có trận đâu bạn ei.')
+    await interaction.followup.send(content='Hôm nay ko có trận đâu bạn ei')
     return
-  await interaction.response.send_message(content='Các trận hôm nay:')
+  await interaction.followup.send(content='Các trận hôm nay:')
 
   for bet_detail in daily_bet:
     match_id = bet_detail.match_id
@@ -600,7 +719,7 @@ async def view_me(interaction: discord.Interaction):
   #print(user_table.table)
   user = get_user_table().view_user(str(user_id))
   user_record = user.to_record()
-  print(user_record)
+  #print(user_record)
   embed_content = generate_user_summary(user_record, isOwner=True)
 
   await interaction.response.send_message(content='', embeds=[embed_content])
@@ -627,8 +746,17 @@ async def view_all_record(interaction: discord.Interaction):
     generate_user_summary(record, idx + 1, record.user_id == user_id)
     for idx, record in enumerate(user_records)
   ]
-  await interaction.response.send_message(content='Bảng xếp hạng bét thủ',
-                                          embeds=embed_content)
+  # How many elements each
+  # list should have
+  n = 10
+  # using list comprehension
+  final = [
+    embed_content[i * n:(i + 1) * n]
+    for i in range((len(embed_content) + n - 1) // n)
+  ]
+  await interaction.response.send_message(content='Bảng xếp hạng bét thủ')
+  for embed_chunk in final:
+    await interaction.followup.send(content='', embeds=embed_chunk)
 
 
 def get_help_embed():
@@ -640,10 +768,7 @@ def get_help_embed():
     url=
     'https://lh3.googleusercontent.com/pw/AL9nZEXNJywRGO5N_wo6lmEf4L0S6uDroOgskWeCtBbcTm8kuunOI_Jm-RS1MwnaGLPO8ZNBc7QgbtXJcBLR5U6SG3cnmXauJ157I-1rb6lc6SN3_qeRWFAoLFLd8gbUmsxRa7gQKit_RXvca0gKhz2rsW_D=s887-no?authuser=0'
   )
-  embed_content.set_image(
-    url=
-    'https://lh3.googleusercontent.com/lsAHvdaS7bpcxa1IVxEmtrJdcuj890Qddt_FuyECWJ_U7W4uNaCLopgu1hBon9oFCe_Sifm0ngxWt_C5QlE3pToKq4J0n41FGCagT7mHnMTo0t4oOWmjKaGPQm24jEogua-yiZ8IswluKmOsbb1fbsJD2cB9CYLw-4PwLDGWR7vth-Toqq1znlrFiFERWN-lsx5UZGnxnev83FcpBmyAFwx5rqzzN6zvSm6BI2QbMkHRkAGfu6iBD_7bQQ4XDI_akEHOAlyR0gf6uPtFy2Ey6XdfsXwemkrydtFTS5kcTDZrAlCIhivl1SsoHXZZCMSTOg8kKBx6XsUkHNgntWNYnnPA5Bs5ggEChNR9FwHtq1TkVV-GA-YcRNDe01B6Xeu3FwTLLEoGXE3JiTxT97d6lVNGLsNkDzrRtVmWJxikMR9j-rDgW3zktqlHOOdohejKdDPioVMPT7D3dvRRqWUXfnP4FjIGcLxHMh9LwrrKN1DXS8sVLHwjSObMe1Zdtr6WrLn0X43y2CB2MmrkKVLTnzuPCu4b93NtVFIR3AKur9t3PhNZl7O7WS0jOll3JzPpl8UstIpeo12RATNjUSLmAvtdTryg4H6Y9dayBoWZnLjFmxnn0viO7mY5IiIjMRKMNQCiZms9oY6Q7giDlPHYzR8Bg9IaJynOb1woSz-u1QCIPatBgPVlYYbulXUHsv3w7dcE-DpuqcbdF5uNvHFoET0z_J6j_vpievqO4BgukjFPKaKXuHKilOL0WF9XQdzgZ2dHsON5ARZXVwWHaj5GHYi6tm5xjwBAbCglnirz1bQBElNc96_ptkKI6H4cwKIaWHt6E6_li1nqSrFCiWhIZnVShEtGSKZawX4WXKq6YFIGNrWwozqYl2CJVR7ks_MmoSTAnGfG4WYQ_B5_cJ-WsPJsNCZe6MEOGNCi7UHdeOz7l69Ls0EDjQwUTjdmvhCqMvho7zv9cbRPaw8BtXV2TcB6hszPJEdGJlnjlhONcoQXxcFXb_5s6WE0YLsMObkLIVszlexaxZThnewzJEt-SSYYMDaRQAH1NxgQOr_8uDpdOruvNsgijEGlvg9htdw=w2124-h960-no?authuser=0'
-  )
+  embed_content.set_image(url='https://i.imgur.com/Z9gcRdb.png')
   embed_content.add_field(name=':goggles:  `/profile`',
                           value='Check your summary stats',
                           inline=False)
@@ -674,4 +799,11 @@ async def help(interaction):
   await interaction.response.send_message(content='', embeds=[embed_content])
 
 
-client.run(token)
+#print("a")
+# client.run(token) #tao loi
+#print("b")
+
+try:
+  client.run(token)
+except:
+  os.system("kill 1")

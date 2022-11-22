@@ -16,9 +16,30 @@ class Event_API:
         self.sport_id = sport_id
         self.league_id = league_id
 
+    def get_ended_events(self, sport_id=sport_id, league_id=league_id, page=1):
+        payload = {'sport_id': sport_id, 'league_id': league_id, 'token': token, 'page': page}
+        endpoint = url + "/v3/events/ended"
+        response = requests.get(endpoint, payload)
+
+        return response.json()
+
     def get_upcoming_events(self, sport_id=sport_id, league_id=league_id, page=1):
         payload = {'sport_id': sport_id, 'league_id': league_id, 'token': token, 'page': page}
         endpoint = url + "/v3/events/upcoming"
+        response = requests.get(endpoint, payload)
+
+        return response.json()
+
+    def get_ended_daily_event(self, day, sport_id=sport_id, league_id=league_id, page=1):
+        payload = {'sport_id': sport_id, 'league_id': league_id, 'token': token, 'page': page, 'day': day}
+        endpoint = url + "/v3/events/ended"
+        response = requests.get(endpoint, payload)
+
+        return response.json()
+
+    def get_inplay_events(self, sport_id=sport_id, league_id=league_id):
+        payload = {'sport_id': sport_id, 'league_id': league_id, 'token': token}
+        endpoint = url + "/v3/events/inplay"
         response = requests.get(endpoint, payload)
 
         return response.json()

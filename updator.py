@@ -10,6 +10,7 @@ from random import randint
 from result import Result
 import copy
 from user import User
+import datetime
 
 
 class Updator:
@@ -49,15 +50,88 @@ class Updator:
 
     result = match_odd['odds']['1_2'][0]['ss']
     is_over = (match['results'][0]['ss'] is not None)
-    asian_handicap = float(
-      match_odd['odds']['1_2'][0]['handicap']) * matching_dir
-    over_under = float(match_odd['odds']['1_3'][0]['handicap'])
 
+    asian_handicap = 0
+    over_under = 0
+    if match_odd['odds']['1_2'][0]['time_str'] is None:
+      asian_handicap = float(
+        match_odd['odds']['1_2'][0]['handicap']) * matching_dir
+    else:
+      match_entity = self.match_table.view_match(str(event_id))
+      if match_entity is not None:
+        asian_handicap = match_entity.asian_handicap
+    if match_odd['odds']['1_3'][0]['time_str'] is None:
+      over_under = float(match_odd['odds']['1_3'][0]['handicap'])
+    else:
+        match_entity = self.match_table.view_match(str(event_id))
+        if match_entity is not None:
+          over_under = match_entity.over_under
     return Match(match_id, home, away, asian_handicap, over_under, result,
                  time, is_over)
 
+  def _get_ended_events(self):
+    current_time = datetime.datetime.now()
+    today = "{:02d}".format(current_time.year) + "{:02d}".format(
+    current_time.month) + "{:02d}".format(current_time.day)
+
+    result = self.api.get_ended_daily_event(today)
+
+    if result['success'] != 1:
+      print("Cannot get ended events")
+      return
+
+    total = result['pager']['total']
+    page = result['pager']['page']
+    per_page = result['pager']['page']
+
+    events = result['results']
+
+    while total > per_page:
+      page += 1
+      result = self.api.get_upcoming_events(page=page)
+
+      if result['success'] != 1:
+        print("Cannot get ended events")
+        return
+
+      events += result['results']
+      total -= per_page
+
+    return events
+
+  def update_ended_matches(self):
+    ended_events_from_api = self._get_ended_events()
+    updated_matches = [
+      self._from_event_to_match(event) for event in ended_events_from_api
+    ]
+    updated_matches_map = self._to_map(updated_matches)
+
+    old_matches = self.match_table.list_all_matches()
+    old_matches_map = self._to_map(old_matches)
+
+    for match_id in updated_matches_map.keys():
+      if match_id not in old_matches_map:
+        self.match_table.add_match(updated_matches_map[match_id])
+      else:
+        old_match_payload = old_matches_map[match_id].to_payload()
+        updated_match_payload = updated_matches_map[match_id].to_payload()
+
+        if updated_match_payload != old_match_payload:
+          print("update match ...")
+          #print("old:", old_match_payload)
+          #print("new:", updated_match_payload)
+          self.match_table.update_match(updated_matches_map[match_id])
+    print("Done updating ended matches")
+
+    
+  
   def _get_upcoming_events(self):
-    result = self.api.get_upcoming_events()
+    current_time = datetime.datetime.now()
+    today = "{:02d}".format(current_time.year) + "{:02d}".format(
+    current_time.month) + "{:02d}".format(current_time.day)
+
+    result = self.api.get_upcoming_daily_events(today)
+    #print(result)
 
     if result['success'] != 1:
       print("Cannot get upcoming events")
@@ -101,6 +175,7 @@ class Updator:
     old_matches = self.match_table.list_all_matches()
     old_matches_map = self._to_map(old_matches)
 
+    changed_odd_matches = []
     for match_id in updated_matches_map.keys():
       if match_id not in old_matches_map:
         self.match_table.add_match(updated_matches_map[match_id])
@@ -109,12 +184,15 @@ class Updator:
         updated_match_payload = updated_matches_map[match_id].to_payload()
 
         if updated_match_payload != old_match_payload:
-          print("update match ...")
-          #print("old:", old_match_payload)
-          #print("new:", updated_match_payload)
-          self.match_table.update_match(updated_matches_map[match_id])
+          
+          if updated_match_payload['is_over'] == False:
+            print("update match ...")
+            #changed_odd_matches.append(updated_matches_map[match_id])
+            #print("old:", old_match_payload)
+            #print("new:", updated_match_payload)
+            self.match_table.update_match(updated_matches_map[match_id])
     print("Done updating upcoming matches")
-
+    #return changed_odd_matches
 
   def update_user_bet_history(self, user_id):
     user = self.user_table.view_user(str(user_id))
@@ -139,8 +217,8 @@ class Updator:
         #print(updated_user.history[match_id]['result'] == '')
         if updated_user.history[match_id]['result'] == '':
           result = self.calculator.calculate(
-            updated_user.history[match_id]['bet_option'],
-            match.asian_handicap, match.over_under, match.result)
+            updated_user.history[match_id]['bet_option'], match.asian_handicap,
+            match.over_under, match.result)
           #print(updated_user.name, match_id, result.name)
 
           updated_user.history[match_id]['result'] = result.name
@@ -196,7 +274,6 @@ class Updator:
           # }
           #print("here")
 
-        
         if match.is_over:
           #user did not bet
           #updated_user = copy.deepcopy(user)

@@ -16,7 +16,7 @@ class User:
     self.draw = draw
     self.loss = loss
     self.score = score
-    # {<match_id>: {'bet_option': 'xxx', 'result': 'xxx', 'time': 'xxx'}}
+    # {<match_id>: {'bet_option': 'xxx', 'result': 'xxx', 'time': 'xxx', 'asian_handicap': x, 'over_under': x}}
     self.history = history
 
   def to_record(self):
