@@ -20,6 +20,7 @@ from result import get_result_shorthand
 import pytz
 from discord.ext import tasks
 import requests
+import time
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -108,10 +109,13 @@ async def on_ready():
 
 #warmup_update_time = datetime.time(hour=8, minute=42)
 
-first_match_update_time = datetime.time(hour=12, minute=30)
-second_match_update_time = datetime.time(hour=15, minute=30)
-third_match_update_time = datetime.time(hour=18, minute=30)
-forth_match_update_time = datetime.time(hour=21, minute=30)
+# first_match_update_time = datetime.time(hour=12, minute=15)
+# second_match_update_time = datetime.time(hour=15, minute=15)
+# third_match_update_time = datetime.time(hour=18, minute=15)
+# forth_match_update_time = datetime.time(hour=21, minute=15)
+
+first_matches_update_time = datetime.time(hour=17, minute=15)
+second_matches_update_time = datetime.time(hour=21, minute=15)
 
 # warmup_update_time = datetime.time(hour=17, minute=42)
 # first_match_update_time = datetime.time(hour=17, minute=43)
@@ -125,21 +129,20 @@ forth_match_update_time = datetime.time(hour=21, minute=30)
 #   admin_channel = client.get_channel(int(os.getenv('ADMIN_CHANNEL_ID')))
 #   await admin_channel.send("test")
 
-
 odd_update_time = datetime.time(hour=0)
+
+
 @tasks.loop(time=[odd_update_time])
 async def update_odd_cron_job():
   print("auto update odd ...")
   updator = Updator()
   updator.update_upcoming_matches()
-  
+
   admin_channel = client.get_channel(int(os.getenv('ADMIN_CHANNEL_ID')))
   await admin_channel.send("Auto: updated new odds")
 
-@tasks.loop(time=[
-  first_match_update_time,
-  second_match_update_time, third_match_update_time, forth_match_update_time
-])
+
+@tasks.loop(time=[first_matches_update_time, second_matches_update_time])
 async def update_result_cron_job():
   print("auto update running ...")
   updator = Updator()
@@ -154,11 +157,12 @@ async def update_result_cron_job():
 #morning_remind_time = datetime.time(hour=8, minute=42)
 morning_remind_time = datetime.time(hour=2)
 afternoon_remind_time = datetime.time(hour=8)
+before_first_match_remind_time = datetime.time(hour=14, minute=30)
 
-import time
 
-
-@tasks.loop(time=[morning_remind_time, afternoon_remind_time])
+@tasks.loop(time=[
+  morning_remind_time, afternoon_remind_time, before_first_match_remind_time
+])
 async def remind_cron_job():
   #print("auto remind ...")
   admin_channel = client.get_channel(int(
