@@ -99,9 +99,9 @@ tree = app_commands.CommandTree(client)
 # tree = app_commands.CommandTree(client)
 
 
-@tree.command(name="hello", description="Clear all chat history")
-async def hello(interaction: discord.Interaction):
-  await interaction.response.send_message(content="hello")
+# @tree.command(name="hello", description="Clear all chat history")
+# async def hello(interaction: discord.Interaction):
+#   await interaction.response.send_message(content="hello")
 
 
 #client.run(token)
