@@ -11,6 +11,7 @@ from result import Result
 import copy
 from user import User
 import datetime
+from result import star_converter
 
 
 class Updator:
@@ -204,7 +205,8 @@ class Updator:
         updated_user.history[match_id] = {
           "bet_option": BetType.UNCHOSEN.value,
           "result": "",
-          'time': match.time
+          'time': match.time,
+          'used_hopestar': 0
         }
       if match.is_over:
         #user did not bet
@@ -221,18 +223,21 @@ class Updator:
             match.over_under, match.result)
           #print(updated_user.name, match_id, result.name)
 
-          updated_user.history[match_id]['result'] = result.name
-          #print(match_id, updated_user.history[match_id]['result'])
-          updated_user.score += result.value
-
           if result == Result.WIN or result == Result.HALF_WIN:
-            updated_user.win += 1
+              updated_user.win += 1
 
           if result == Result.LOSS or result == Result.HALF_LOSS:
             updated_user.loss += 1
 
           if result == Result.DRAW:
             updated_user.draw += 1
+
+          if updated_user.history[match_id]['used_hopestar']:
+            result = star_converter[result]
+            
+          updated_user.history[match_id]['result'] = result.name
+          #print(match_id, updated_user.history[match_id]['result'])
+          updated_user.score += result.value
 
     #print(updated_user.name, updated_user.score, updated_user.history)
     self.user_table.update_user(updated_user)
@@ -260,7 +265,8 @@ class Updator:
           updated_user.history[match_id] = {
             "bet_option": BetType.UNCHOSEN.value,
             "result": "",
-            'time': match.time
+            'time': match.time,
+            'used_hopestar': 0
           }
 
           # user.history[match_id] = {}
@@ -289,10 +295,7 @@ class Updator:
               match.asian_handicap, match.over_under, match.result)
             #print(updated_user.name, match_id, result.name)
 
-            updated_user.history[match_id]['result'] = result.name
-            #print(match_id, updated_user.history[match_id]['result'])
-            updated_user.score += result.value
-
+            #print("after calculate", updated_user.user_id, result.name)
             if result == Result.WIN or result == Result.HALF_WIN:
               updated_user.win += 1
 
@@ -301,6 +304,16 @@ class Updator:
 
             if result == Result.DRAW:
               updated_user.draw += 1
+            
+            #print("before:", updated_user.user_id, result.name) #Win -> D*
+            if updated_user.history[match_id]['used_hopestar']:
+              result = star_converter[result]
+            #print("after:", updated_user.user_id, result.name)
+              
+            updated_user.history[match_id]['result'] = result.name
+            #print(match_id, updated_user.history[match_id]['result'])
+            updated_user.score += result.value
+
 
       #print(updated_user.name, updated_user.score, updated_user.history)
       self.user_table.update_user(updated_user)

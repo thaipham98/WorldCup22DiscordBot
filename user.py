@@ -7,7 +7,7 @@ most_recent_match = 10
 class User:
 
   def __init__(self, user_id, name, channel_id, channel_name, win, draw, loss,
-               score, history):
+               score, history, hopestar):
     self.user_id = user_id
     self.name = name
     self.channel_id = channel_id
@@ -16,8 +16,9 @@ class User:
     self.draw = draw
     self.loss = loss
     self.score = score
-    # {<match_id>: {'bet_option': 'xxx', 'result': 'xxx', 'time': 'xxx', 'asian_handicap': x, 'over_under': x}}
+    # {<match_id>: {'bet_option': 'xxx', 'result': 'xxx', 'time': 'xxx', 'used_hopestar': xxx}}
     self.history = history
+    self.hopestar = hopestar
 
   def to_record(self):
     bet_history = []
@@ -34,7 +35,7 @@ class User:
     count = min(most_recent_match, len(bet_history))
 
     return Record(self.user_id, self.name, self.channel_name, self.win, self.draw, self.loss,
-                  self.score, bet_history[:count])
+                  self.score, bet_history[:count], self.hopestar)
 
   def to_payload(self):
     return {
@@ -46,5 +47,6 @@ class User:
       'draw': self.draw,
       'loss': self.loss,
       'score': self.score,
-      "history": self.history
+      "history": self.history,
+      "hopestar": self.hopestar
     }

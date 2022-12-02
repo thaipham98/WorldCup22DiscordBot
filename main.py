@@ -26,6 +26,11 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
+# migration = Migration()
+# migration.add_hopestar()
+
+# db['user'] = {}
+# db['match'] = {}
 #db['user'].clear()
 # db['match'].clear()
 #client = commands.Bot(intents=discord.Intents.all())
@@ -64,6 +69,42 @@ class aclient(discord.Client):
 client = aclient()
 tree = app_commands.CommandTree(client)
 
+# import discord
+# import asyncio
+# import os
+# from discord import app_commands
+
+# intents = discord.Intents.default()
+# intents.message_content = True
+# intents.members = True
+
+# token = os.getenv('TOKEN')
+
+# class aclient(discord.Client):
+
+#   def __init__(self):
+#     super().__init__(intents=intents)
+#     self.synced = False  #we use this so the bot doesn't sync commands more than once
+
+#   async def on_ready(self):
+#     print("hẻe")
+#     await self.wait_until_ready()
+#     if not self.synced:  #check if slash commands have been synced
+#       await tree.sync(
+#       )  #guild specific: leave blank if global (global registration can take 1-24 hours)
+#       self.synced = True
+#     print(f"We have logged in as {self.user}.")
+
+# client = aclient()
+# tree = app_commands.CommandTree(client)
+
+
+@tree.command(name="hello", description="Clear all chat history")
+async def hello(interaction: discord.Interaction):
+  await interaction.response.send_message(content="hello")
+
+
+#client.run(token)
 #db["user"].clear()
 
 
@@ -104,30 +145,11 @@ async def on_ready():
   remind_cron_job.start()
   update_result_cron_job.start()
   update_odd_cron_job.start()
-  # test_cron.start()
-
-
-#warmup_update_time = datetime.time(hour=8, minute=42)
-
-# first_match_update_time = datetime.time(hour=12, minute=15)
-# second_match_update_time = datetime.time(hour=15, minute=15)
-# third_match_update_time = datetime.time(hour=18, minute=15)
-# forth_match_update_time = datetime.time(hour=21, minute=15)
 
 first_matches_update_time = datetime.time(hour=17, minute=15)
 second_matches_update_time = datetime.time(hour=21, minute=15)
 
-# warmup_update_time = datetime.time(hour=17, minute=42)
-# first_match_update_time = datetime.time(hour=17, minute=43)
-# second_match_update_time = datetime.time(hour=17, minute=44)
-# third_match_update_time = datetime.time(hour=17, minute=45)
-# @tasks.loop(time=[
-#   warmup_update_time, first_match_update_time, second_match_update_time,
-#   third_match_update_time
-# ])
-# async def test_cron():
-#   admin_channel = client.get_channel(int(os.getenv('ADMIN_CHANNEL_ID')))
-#   await admin_channel.send("test")
+
 
 odd_update_time = datetime.time(hour=0)
 
@@ -193,30 +215,6 @@ async def remind_cron_job():
 
   await admin_channel.send("Auto: sent reminder")
 
-
-# user1 = User("12321", "a", "b",
-#                          "c", 1, 2, 0, 10000, {})
-# user2 = User("1321", "fadsf", "b",
-#                          "c", 2, 2, 0, 10000, {})
-# user3 = User("12321321", "fdafdfax", "b",
-#                          "c", 4, 2, 0, 50000, {})
-# user4 = User("123212341", "adfweqr", "b",
-#                          "fadsva", 4, 3, 0, 50000, {})
-# user5 = User("123213113", "adfbjkla", "b",
-#                          "c", 4, 3, 0, 50000, {})
-# user6 = User("1232131133213", "adfbjkla", "b",
-#                          "c", 4, 3, 0, 60000, {})
-# user7 = User("123213113434", "adfbjkla", "b",
-#                          "c", 4, 3, 1, 60000, {})
-# user_table.add_user(user1)
-# user_table.add_user(user2)
-# user_table.add_user(user3)
-# user_table.add_user(user4)
-# user_table.add_user(user5)
-# user_table.add_user(user6)
-# user_table.add_user(user7)
-#print(db["user"])
-
 bet_channel_name = 'Bet Channels'
 
 
@@ -245,7 +243,7 @@ def get_daily_bet():
   current_time = datetime.datetime.now()
   today = "{:02d}".format(current_time.year) + "{:02d}".format(
     current_time.month) + "{:02d}".format(current_time.day)
-  #today = '20221120'
+  # today = '20221201'
   # TODO: replace this temp date with today date above
   upcoming_daily_matches = events_api.get_upcoming_daily_events(today)
   #print("upcoming:",upcoming_daily_matches)
@@ -314,7 +312,7 @@ async def clear_chat(interaction: discord.Interaction):
   await interaction.channel.purge()
 
 
-register_channel_id = 1043080542335291442
+register_channel_id = 1047059842042437643
 
 
 def from_register_channel(interaction):
@@ -377,7 +375,7 @@ async def create_player(interaction: discord.Interaction, user_id: str,
       await user_channel.send(content="Welcome {0}!".format(user.name),
                               embeds=[embed_content])
       user_entity = User(user.id, user.name, user_channel.id,
-                         user_channel.name, 0, 0, 0, 0, {})
+                         user_channel.name, 0, 0, 0, 0, {}, 2)
       get_user_table().add_user(user_entity)
       updator = Updator()
       updator.update_user_bet_history(user.id)
@@ -508,8 +506,8 @@ async def update_scores(interaction: discord.Interaction):
 
     #print(db['user']['775984015525543967'])
     updator = Updator()
-    updator.update_ended_matches()
-    updator.update_upcoming_matches()
+    #updator.update_ended_matches()
+    #updator.update_upcoming_matches()
     updator.update_all_user_bet_history()
     await interaction.followup.send(content="Done updating!")
   else:
@@ -562,11 +560,11 @@ def formatTime(epoch):
   return dt.strftime('%d/%m/%Y %H:%M')
 
 
-def generate_bet_item(bet_detail, match_info):
-  #print(match_info)
+def generate_bet_item(bet_detail, match_info, user_bet_for_match=None):
   embed_content = discord.Embed(
     type='rich',
-    title=f'{bet_detail.home} (home) - {bet_detail.away} (away)',
+    title=
+    f'{bet_detail.home} (home) - {bet_detail.away} (away) {":star:" if (user_bet_for_match is not None and user_bet_for_match["used_hopestar"]) else ""}',
     description=f'{formatTime(match_info["time"])} VN time'
     if match_info else None,
     colour=discord.Colour.from_str('#7F1431'))
@@ -577,6 +575,22 @@ def generate_bet_item(bet_detail, match_info):
                           value=bet_detail.over_under,
                           inline=True)
   return embed_content
+
+
+def update_hopestar_selection_for_user(user_id, match_id, selection):
+  user = get_user_table().view_user(user_id)
+
+  if user is None:
+    return
+
+  updated_user = copy.deepcopy(user)
+  updated_user.history[match_id]['used_hopestar'] = selection
+
+  if selection:
+    updated_user.hopestar -= 1
+  else:
+    updated_user.hopestar += 1
+  get_user_table().update_user(updated_user)
 
 
 def update_selection_for_user(user_id, match_id, selection):
@@ -595,12 +609,12 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
   lock_time_before_match = 15 * 60
   bet_changable = int(datetime.datetime.now().timestamp()
                       ) <= bet_detail.time - lock_time_before_match
-  #print('generate_bet_actions', bet_detail, '\n', user_bet_for_match, '\n', match_info)
+
   default_bet = user_bet_for_match["bet_option"] if user_bet_for_match else None
   # FOR TEST: default_bet = BetType.OVER.value
 
   view = View(timeout=None)
-  select = Select(options=[
+  bet_select = Select(options=[
     discord.SelectOption(label='Home',
                          value=BetType.HOME.value,
                          default=default_bet == BetType.HOME.value),
@@ -614,34 +628,74 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
                          value=BetType.UNDER.value,
                          default=default_bet == BetType.UNDER.value)
   ],
-                  disabled=not bet_changable or match_info['is_over'])
+                      disabled=not bet_changable or match_info['is_over'])
 
-  async def on_select_callback(interaction):
-    #print('on select bet changable', bet_changable)
+  async def on_bet_select_callback(interaction):
     select_changable = int(datetime.datetime.now().timestamp()
                            ) <= bet_detail.time - lock_time_before_match
     if not select_changable:
       await interaction.response.edit_message(
         content='Quá giờ r đừng có ăn gian', view=None)
       return
-    selection = int(select.values[0])
+    selection = int(bet_select.values[0])
     update_selection_for_user(str(interaction.user.id), bet_detail.match_id,
                               selection)
-    #print('match id ', bet_detail.match_id, ' selected bet ', select.values[0])
+
     await interaction.response.send_message(
       content=
       f"You chose {bet_type_converter[selection]} for match {match_info['home']} - {match_info['away']} | ah: {match_info['asian_handicap']} - ou: {match_info['over_under']}"
     )
 
-  select.callback = on_select_callback
-  view.add_item(select)
+  bet_select.callback = on_bet_select_callback
+  view.add_item(bet_select)
+
+  default_hopestar = user_bet_for_match[
+    "used_hopestar"] if user_bet_for_match else 0
+
+  hopestar_select = Select(options=[
+    discord.SelectOption(label='Use hopestar',
+                         value=1,
+                         default=default_hopestar == 1),
+    discord.SelectOption(label='Not use hopestar',
+                         value=0,
+                         default=default_hopestar == 0)
+  ],
+                           disabled=not bet_changable or match_info['is_over'])
+
+  async def on_hopestar_select_callback(interaction):
+    select_changable = int(datetime.datetime.now().timestamp()
+                           ) <= bet_detail.time - lock_time_before_match
+    if not select_changable:
+      await interaction.response.edit_message(
+        content='Quá giờ r đừng có ăn gian', view=None)
+      return
+    selection = int(hopestar_select.values[0])
+
+    user_id = str(interaction.user.id)
+    user = get_user_table().view_user(user_id)
+
+    if selection and not user.hopestar:
+      await interaction.response.send_message(content='Hết sao rồi!')
+      return
+
+    if user.history[bet_detail.match_id]['used_hopestar'] != selection:
+      update_hopestar_selection_for_user(user_id, bet_detail.match_id,
+                                         selection)
+
+    await interaction.response.send_message(
+      content=
+      f"You {'selected' if selection == 1 else 'did not select'} hopestar for match {match_info['home']} - {match_info['away']} | ah: {match_info['asian_handicap']} - ou: {match_info['over_under']}"
+    )
+
+  hopestar_select.callback = on_hopestar_select_callback
+  view.add_item(hopestar_select)
 
   return view
 
 
 async def send_bet_message(interaction, bet_detail, user_bet_for_match,
                            match_info):
-  embed_content = generate_bet_item(bet_detail, match_info)
+  embed_content = generate_bet_item(bet_detail, match_info, user_bet_for_match)
   view = generate_bet_actions(bet_detail, user_bet_for_match, match_info)
   await interaction.followup.send(content='Lên kèo',
                                   embeds=[embed_content],
@@ -704,6 +758,8 @@ def generate_user_summary(user_record, rank=None, isOwner=False):
   embed_content.add_field(name='History (max 10 recent)',
                           value=history_str,
                           inline=True)
+  if (isOwner):
+    embed_content.set_footer(text=f"Hopestar balance: {user_record.hopestar}")
   return embed_content
 
 
@@ -802,10 +858,6 @@ async def help(interaction):
   embed_content = get_help_embed()
   await interaction.response.send_message(content='', embeds=[embed_content])
 
-
-#print("a")
-# client.run(token) #tao loi
-#print("b")
 
 try:
   client.run(token)

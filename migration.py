@@ -9,6 +9,7 @@ class Migration:
     def __init__(self):
         self.api = events_api.Event_API()
         self.matchDAO = MatchTable()
+        self.userDAO = UserTable()
         
     def to_match(self, event):
         
@@ -71,6 +72,17 @@ class Migration:
             match = self.to_match(event)
             #print(match.__str__())
             self.matchDAO.add_match(match)
+
+    def add_hopestar(self):
+        for key in self.userDAO.table:
+          db["user"][key]['hopestar'] = 2
+
+          for match_id in db["user"][key]["history"]:
+              db["user"][key]["history"][match_id]['used_hopestar'] = 0
+          #user['hopestar'] = 2
+      
+      
+      
 
 
 

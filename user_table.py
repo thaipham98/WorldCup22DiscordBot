@@ -32,7 +32,7 @@ class UserTable:
     
     if user_id in self.table:
       #print("found")
-      return User(user_id, name=self.table[user_id]['name'],channel_id=self.table[user_id]['channel_id'],channel_name=self.table[user_id]['channel_name'],win=self.table[user_id]['win'], draw=self.table[user_id]['draw'],loss=self.table[user_id]['loss'],score=self.table[user_id]['score'], history=replit.database.to_primitive(self.table[user_id]['history']))
+      return User(user_id, name=self.table[user_id]['name'],channel_id=self.table[user_id]['channel_id'],channel_name=self.table[user_id]['channel_name'],win=self.table[user_id]['win'], draw=self.table[user_id]['draw'],loss=self.table[user_id]['loss'],score=self.table[user_id]['score'], history=replit.database.to_primitive(self.table[user_id]['history']), hopestar=self.table[user_id]['hopestar'])
       # return User(user_id, name=self.table.get(user_id).get('name'),channel_id=self.table.get(user_id).get('channel_id'),channel_name=self.table.get(user_id).get('channel_name'),win=self.table.get(user_id).get('win'), draw=self.table.get(user_id).get('draw'),loss=self.table.get(user_id).get('loss'),score=self.table.get(user_id).get('score'), history=replit.database.to_primitive(self.table.get(user_id).get('history')))
     
     return None
@@ -72,6 +72,9 @@ class UserTable:
     if self.table[user_id]['history'] != user.history:
       self.table[user_id]['history'] = user.history
       #self.table[user_id].set(['history'],user.history)
+
+    if self.table[user_id]['hopestar'] != user.hopestar:
+      self.table[user_id]['hopestar'] = user.hopestar
 
     # for match_id in user.history.keys():
     #   if match_id not in self.table[user_id]['history']:
@@ -122,7 +125,7 @@ class UserTable:
     users = []
 
     for user_id in self.table.keys():
-      user = User(user_id, name=self.table[user_id]['name'],channel_id=self.table[user_id]['channel_id'],channel_name=self.table[user_id]['channel_name'],win=self.table[user_id]['win'], draw=self.table[user_id]['draw'],loss=self.table[user_id]['loss'],score=self.table[user_id]['score'], history=replit.database.to_primitive(self.table[user_id]['history']))
+      user = User(user_id, name=self.table[user_id]['name'],channel_id=self.table[user_id]['channel_id'],channel_name=self.table[user_id]['channel_name'],win=self.table[user_id]['win'], draw=self.table[user_id]['draw'],loss=self.table[user_id]['loss'],score=self.table[user_id]['score'], history=replit.database.to_primitive(self.table[user_id]['history']), hopestar=self.table[user_id]['hopestar'])
       users.append(user)
 
     return users
