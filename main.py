@@ -159,6 +159,7 @@ async def update_odd_cron_job():
   print("auto update odd ...")
   updator = Updator()
   updator.update_upcoming_matches()
+  updator.update_all_user_bet_history()
 
   admin_channel = client.get_channel(int(os.getenv('ADMIN_CHANNEL_ID')))
   await admin_channel.send("Auto: updated new odds")
@@ -312,7 +313,7 @@ async def clear_chat(interaction: discord.Interaction):
   await interaction.channel.purge()
 
 
-register_channel_id = 1047059842042437643
+register_channel_id = int(os.getenv('REGISTER_CHANNEL_ID'))
 
 
 def from_register_channel(interaction):

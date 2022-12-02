@@ -224,7 +224,7 @@ class Updator:
           #print(updated_user.name, match_id, result.name)
 
           if result == Result.WIN or result == Result.HALF_WIN:
-              updated_user.win += 1
+            updated_user.win += 1
 
           if result == Result.LOSS or result == Result.HALF_LOSS:
             updated_user.loss += 1
