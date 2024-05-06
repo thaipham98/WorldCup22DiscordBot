@@ -98,11 +98,9 @@ tree = app_commands.CommandTree(client)
 # client = aclient()
 # tree = app_commands.CommandTree(client)
 
-
 # @tree.command(name="hello", description="Clear all chat history")
 # async def hello(interaction: discord.Interaction):
 #   await interaction.response.send_message(content="hello")
-
 
 #client.run(token)
 #db["user"].clear()
@@ -146,10 +144,11 @@ async def on_ready():
   update_result_cron_job.start()
   update_odd_cron_job.start()
 
+
 first_matches_update_time = datetime.time(hour=17, minute=15)
+first_matches_after_penalty = datetime.time(hour=18)
 second_matches_update_time = datetime.time(hour=21, minute=15)
-
-
+second_matches_after_penalty = datetime.time(hour=22)
 
 odd_update_time = datetime.time(hour=0)
 
@@ -165,7 +164,10 @@ async def update_odd_cron_job():
   await admin_channel.send("Auto: updated new odds")
 
 
-@tasks.loop(time=[first_matches_update_time, second_matches_update_time])
+@tasks.loop(time=[
+  first_matches_update_time, first_matches_after_penalty,
+  second_matches_update_time, second_matches_after_penalty
+])
 async def update_result_cron_job():
   print("auto update running ...")
   updator = Updator()
@@ -215,6 +217,7 @@ async def remind_cron_job():
         await channel.send(embed=embed)
 
   await admin_channel.send("Auto: sent reminder")
+
 
 bet_channel_name = 'Bet Channels'
 
@@ -342,7 +345,7 @@ async def register_player(interaction: discord.Interaction, channel_name: str):
   await user_channel.send(content="Welcome {0}!".format(user_channel.name),
                           embeds=[embed_content])
   user_entity = User(user.id, user.name, user_channel.id, user_channel.name, 0,
-                     0, 0, 0, {})
+                     0, 0, 0, {}, 2)
   get_user_table().add_user(user_entity)
   updator = Updator()
   updator.update_user_bet_history(user.id)
@@ -388,7 +391,6 @@ async def create_player(interaction: discord.Interaction, user_id: str,
       content=
       'This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help.'
     )
-
 
 async def kick_user(interaction, user_id):
   user_entity = get_user_table().view_user(user_id)
@@ -507,7 +509,7 @@ async def update_scores(interaction: discord.Interaction):
 
     #print(db['user']['775984015525543967'])
     updator = Updator()
-    #updator.update_ended_matches()
+    updator.update_ended_matches()
     #updator.update_upcoming_matches()
     updator.update_all_user_bet_history()
     await interaction.followup.send(content="Done updating!")
@@ -759,8 +761,7 @@ def generate_user_summary(user_record, rank=None, isOwner=False):
   embed_content.add_field(name='History (max 10 recent)',
                           value=history_str,
                           inline=True)
-  if (isOwner):
-    embed_content.set_footer(text=f"Hopestar balance: {user_record.hopestar}")
+  embed_content.set_footer(text=f"Hopestar balance: {user_record.hopestar}")
   return embed_content
 
 

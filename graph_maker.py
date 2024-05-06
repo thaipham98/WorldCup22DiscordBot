@@ -10,6 +10,7 @@ match_list = []
 
 
 def get_score_from_result(result):
+  print(result)
   if result == 'WIN':
     return 10000
   elif result == 'HALF_WIN':
@@ -20,6 +21,17 @@ def get_score_from_result(result):
     return 2500
   elif result == 'LOSS':
     return 0
+
+  elif result == 'DOUBLE_LOSS':
+    return -20000
+  elif result == 'DOUBLE_HALF_LOSS':
+    return -10000
+  elif result == 'DOUBLE_DRAW':
+    return 10000
+  elif result == 'DOUBLE_HALF_WIN':
+    return 15000
+  elif result == 'DOUBLE_WIN':
+    return 20000
   else:
     return 0
 
