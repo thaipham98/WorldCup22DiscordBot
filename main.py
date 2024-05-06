@@ -392,6 +392,7 @@ async def create_player(interaction: discord.Interaction, user_id: str,
       'This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help.'
     )
 
+
 async def kick_user(interaction, user_id):
   user_entity = get_user_table().view_user(user_id)
   if user_entity is None:
