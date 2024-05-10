@@ -69,41 +69,10 @@ class aclient(discord.Client):
 client = aclient()
 tree = app_commands.CommandTree(client)
 
-# import discord
-# import asyncio
-# import os
-# from discord import app_commands
 
-# intents = discord.Intents.default()
-# intents.message_content = True
-# intents.members = True
-
-# token = os.getenv('TOKEN')
-
-# class aclient(discord.Client):
-
-#   def __init__(self):
-#     super().__init__(intents=intents)
-#     self.synced = False  #we use this so the bot doesn't sync commands more than once
-
-#   async def on_ready(self):
-#     print("hẻe")
-#     await self.wait_until_ready()
-#     if not self.synced:  #check if slash commands have been synced
-#       await tree.sync(
-#       )  #guild specific: leave blank if global (global registration can take 1-24 hours)
-#       self.synced = True
-#     print(f"We have logged in as {self.user}.")
-
-# client = aclient()
-# tree = app_commands.CommandTree(client)
-
-# @tree.command(name="hello", description="Clear all chat history")
-# async def hello(interaction: discord.Interaction):
-#   await interaction.response.send_message(content="hello")
-
-#client.run(token)
-#db["user"].clear()
+@tree.command(name="hello", description="hello")
+async def hello(interaction: discord.Interaction):
+  await interaction.response.send_message(content="hello")
 
 
 def backup_table(name):
@@ -128,22 +97,11 @@ def backup_database():
   backup_table(name='match')
 
 
-# backup_database()
-
-# @tasks.loop(seconds=5.0)
-# async def test():
-#   print("test")
-#   channel = client.get_channel(1042862934482763917)  #channel id here
-#   if channel is not None:
-#     await channel.send("test tset test")
-
-
-@client.event
-async def on_ready():
-  remind_cron_job.start()
-  update_result_cron_job.start()
-  update_odd_cron_job.start()
-
+# @client.event
+# async def on_ready():
+#   remind_cron_job.start()
+#   update_result_cron_job.start()
+#   update_odd_cron_job.start()
 
 first_matches_update_time = datetime.time(hour=17, minute=15)
 first_matches_after_penalty = datetime.time(hour=18)
@@ -347,8 +305,8 @@ async def register_player(interaction: discord.Interaction, channel_name: str):
   user_entity = User(user.id, user.name, user_channel.id, user_channel.name, 0,
                      0, 0, 0, {}, 2)
   get_user_table().add_user(user_entity)
-  updator = Updator()
-  updator.update_user_bet_history(user.id)
+  # updator = Updator()
+  # updator.update_user_bet_history(user.id)
   await interaction.response.send_message(
     content=
     "Channel {0} is created for {1}. Please go to your right channel in Bet Channels."
@@ -391,6 +349,7 @@ async def create_player(interaction: discord.Interaction, user_id: str,
       content=
       'This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help.'
     )
+
 
 async def kick_user(interaction, user_id):
   user_entity = get_user_table().view_user(user_id)
@@ -446,68 +405,6 @@ async def delete_player(interaction: discord.Interaction, user_id: str):
 async def update_scores(interaction: discord.Interaction):
   if from_admin(interaction):
     await interaction.response.send_message(content="Updating ...")
-    #print(db['user'])
-    # print("before:",db['user']['727084338675449906'])
-    #del db['user']['727084338675449906']['history']['123']
-    # #print("after del:",db['user']['727084338675449906'])
-    # me = user_table.view_user('727084338675449906')
-    # deepme = copy.deepcopy(me)
-    # print(deepme.history)
-    # deepme.history[123] = {
-    #         "bet_option": 0,
-    #         "result": "",
-    #         'time': 123
-    # }
-    # # print(deepme.history)
-    # user_table.update_user(deepme)
-    # # new_me = user_table.view_user('727084338675449906')
-    # # print(new_me.history)
-    # # #print(db['user'])
-    # #print(me.history)
-    # print("after:",db['user']['727084338675449906'])
-    #del db['user']['727084338675449906']['history']
-    #print(db['user']['727084338675449906'])
-    #del db['user']['']
-
-    #print(db['match'])
-    # db['match']['4853742']['result'] = ''
-    # db['match']['4853742']['is_over'] = False
-
-    # db['match']['4853743']['result'] = '1-1'
-    # db['match']['4853743']['is_over'] = True
-
-    # db['match']['5118542']['result'] = '3-1'
-    # db['match']['5118542']['is_over'] = True
-
-    # db['match']['4853741']['asian_handicap'] = -1.25
-    # db['match']['4853741']['over_under'] = 2.25
-
-    # #db['user']['775984015525543967']['score'] = 0
-    # #db['user']['775984015525543967']['win'] = 0
-    # #db['user']['775984015525543967']['draw'] = 0
-    # db['user']['741694621666639965']['loss'] = 1
-    # db['user']['741694621666639965']['history']['4853741']['result'] = ''
-
-    # db['user']['775984015525543967']['score'] = 20000
-    # db['user']['775984015525543967']['win'] = 2
-    # #db['user']['775984015525543967']['draw'] = 0
-    # #db['user']['775984015525543967']['loss'] = 0
-    # db['user']['775984015525543967']['history']['4853741']['result'] = ''
-
-    # print(db['match']['4853741'])
-    # print(db['match']['4853743'])
-    # print(db['match']['5118542'])
-
-    # db['user']['775984015525543967']['score'] = 0
-    # db['user']['775984015525543967']['win'] = 0
-    # db['user']['775984015525543967']['draw'] = 0
-    # db['user']['775984015525543967']['loss'] = 0
-    # db['user']['775984015525543967']['history']['4853741']['result'] = ''
-    # db['user']['775984015525543967']['history']['4853743']['result'] = ''
-
-    # db['user']['775984015525543967']['history']['5118542']['result'] = ''
-
-    #print(db['user']['775984015525543967'])
     updator = Updator()
     updator.update_ended_matches()
     #updator.update_upcoming_matches()
@@ -777,11 +674,8 @@ async def view_me(interaction: discord.Interaction):
         interaction.channel.name))
     return
   user_id = interaction.user.id
-  #print(db['user'])
-  #print(user_table.table)
   user = get_user_table().view_user(str(user_id))
   user_record = user.to_record()
-  #print(user_record)
   embed_content = generate_user_summary(user_record, isOwner=True)
 
   await interaction.response.send_message(content='', embeds=[embed_content])
