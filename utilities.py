@@ -1,5 +1,5 @@
 # utilities.py
-from config import ADMIN_ID_1, ADMIN_ID_2, REGISTER_CHANNEL_ID, ADMIN_CHANNEL_ID, BOT_ID, BET_CHANNEL_NAME
+from config import ADMIN_ID_1, ADMIN_ID_2, ADMIN_ID_3, REGISTER_CHANNEL_ID, ADMIN_CHANNEL_ID, BOT_ID, BET_CHANNEL_NAME
 from database import get_user_table
 import discord
 from result import get_result_shorthand
@@ -61,7 +61,7 @@ async def kick_user(client, interaction, user_id):
   get_user_table().delete_user(user_id)
 
   user = client.get_user(int(user_id))
-  await interaction.guild.kick(user)
+  #await interaction.guild.kick(user)
   #print("channel_id=", channel_id)
   return channel_id
 
@@ -136,7 +136,8 @@ def from_right_user(interaction):
 def from_admin(interaction):
   return interaction.channel.name == 'admin' and interaction.channel_id == ADMIN_CHANNEL_ID and (
       interaction.user.id == ADMIN_ID_1
-      or interaction.user.id == ADMIN_ID_2)
+      or interaction.user.id == ADMIN_ID_2
+      or interaction.user.id == ADMIN_ID_3)
 
 def from_register_channel(interaction):
   return interaction.channel.id == REGISTER_CHANNEL_ID
