@@ -38,4 +38,4 @@ tree = app_commands.CommandTree(client)
 events_api = Event_API()
 setup_commands(tree, client, events_api)
 
-client.run(token)
+client.run(str(token))
