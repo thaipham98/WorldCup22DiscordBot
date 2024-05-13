@@ -27,11 +27,9 @@ class Updator:
       return None
 
     event_id = event['id']
-    #print(event_id)
     match = self.api.get_event(event_id)
 
     if match['success'] != 1:
-      #print(match)
       print("Cannot convert event to match")
       return None
 
@@ -56,7 +54,7 @@ class Updator:
     over_under = 0
     if match_odd['odds']['1_2'][0]['time_str'] is None:
       asian_handicap = float(
-        match_odd['odds']['1_2'][0]['handicap']) * matching_dir
+          match_odd['odds']['1_2'][0]['handicap']) * matching_dir
     else:
       match_entity = self.match_table.view_match(str(event_id))
       if match_entity is not None:
@@ -64,16 +62,16 @@ class Updator:
     if match_odd['odds']['1_3'][0]['time_str'] is None:
       over_under = float(match_odd['odds']['1_3'][0]['handicap'])
     else:
-        match_entity = self.match_table.view_match(str(event_id))
-        if match_entity is not None:
-          over_under = match_entity.over_under
+      match_entity = self.match_table.view_match(str(event_id))
+      if match_entity is not None:
+        over_under = match_entity.over_under
     return Match(match_id, home, away, asian_handicap, over_under, result,
                  time, is_over)
 
   def _get_ended_events(self):
     current_time = datetime.datetime.now()
     today = "{:02d}".format(current_time.year) + "{:02d}".format(
-    current_time.month) + "{:02d}".format(current_time.day)
+        current_time.month) + "{:02d}".format(current_time.day)
 
     result = self.api.get_ended_daily_event(today)
 
@@ -103,7 +101,7 @@ class Updator:
   def update_ended_matches(self):
     ended_events_from_api = self._get_ended_events()
     updated_matches = [
-      self._from_event_to_match(event) for event in ended_events_from_api
+        self._from_event_to_match(event) for event in ended_events_from_api
     ]
     updated_matches_map = self._to_map(updated_matches)
 
@@ -119,20 +117,15 @@ class Updator:
 
         if updated_match_payload != old_match_payload:
           print("update match ...")
-          #print("old:", old_match_payload)
-          #print("new:", updated_match_payload)
           self.match_table.update_match(updated_matches_map[match_id])
     print("Done updating ended matches")
 
-    
-  
   def _get_upcoming_events(self):
     current_time = datetime.datetime.now()
     today = "{:02d}".format(current_time.year) + "{:02d}".format(
-    current_time.month) + "{:02d}".format(current_time.day)
+        current_time.month) + "{:02d}".format(current_time.day)
 
     result = self.api.get_upcoming_daily_events(today)
-    #print(result)
 
     if result['success'] != 1:
       print("Cannot get upcoming events")
@@ -169,7 +162,7 @@ class Updator:
   def update_upcoming_matches(self):
     upcoming_events_from_api = self._get_upcoming_events()
     updated_matches = [
-      self._from_event_to_match(event) for event in upcoming_events_from_api
+        self._from_event_to_match(event) for event in upcoming_events_from_api
     ]
     updated_matches_map = self._to_map(updated_matches)
 
@@ -185,15 +178,11 @@ class Updator:
         updated_match_payload = updated_matches_map[match_id].to_payload()
 
         if updated_match_payload != old_match_payload:
-          
+
           if updated_match_payload['is_over'] == False:
             print("update match ...")
-            #changed_odd_matches.append(updated_matches_map[match_id])
-            #print("old:", old_match_payload)
-            #print("new:", updated_match_payload)
             self.match_table.update_match(updated_matches_map[match_id])
     print("Done updating upcoming matches")
-    #return changed_odd_matches
 
   def update_user_bet_history(self, user_id):
     user = self.user_table.view_user(str(user_id))
@@ -203,25 +192,19 @@ class Updator:
       match_id = match.id
       if match_id not in updated_user.history:
         updated_user.history[match_id] = {
-          "bet_option": BetType.UNCHOSEN.value,
-          "result": "",
-          'time': match.time,
-          'used_hopestar': 0
+            "bet_option": BetType.UNCHOSEN.value,
+            "result": "",
+            'time': match.time,
+            'used_hopestar': 0
         }
       if match.is_over:
-        #user did not bet
-        #updated_user = copy.deepcopy(user)
         if updated_user.history[match_id][
             'bet_option'] == BetType.UNCHOSEN.value:
           updated_user.history[match_id]['bet_option'] = randint(1, 4)
-
-        #print(updated_user.history[match_id]['result'] == '')
-        #print(updated_user.history[match_id]['result'] == '')
         if updated_user.history[match_id]['result'] == '':
           result = self.calculator.calculate(
-            updated_user.history[match_id]['bet_option'], match.asian_handicap,
-            match.over_under, match.result)
-          #print(updated_user.name, match_id, result.name)
+              updated_user.history[match_id]['bet_option'],
+              match.asian_handicap, match.over_under, match.result)
 
           if result == Result.WIN or result == Result.HALF_WIN:
             updated_user.win += 1
@@ -234,12 +217,10 @@ class Updator:
 
           if updated_user.history[match_id]['used_hopestar']:
             result = star_converter[result]
-            
+
           updated_user.history[match_id]['result'] = result.name
-          #print(match_id, updated_user.history[match_id]['result'])
           updated_user.score += result.value
 
-    #print(updated_user.name, updated_user.score, updated_user.history)
     self.user_table.update_user(updated_user)
 
   def update_all_user_bet_history(self):
@@ -253,49 +234,21 @@ class Updator:
       for match in matches:
         match_id = match.id
         if match_id not in updated_user.history:
-          #print("processing:", match_id)
-          #print("before:", user.history)
-          #print(type(user.history))
-          # updated_user = User(user.user_id, user.name, user.channel_id, user.channel_name, user.win, user.draw, user.loss, user.score, user.history)
-          # updated_user.history[match_id] = {}
-          # updated_user.history[match_id]['bet_option'] = BetType.UNCHOSEN
-          # updated_user.history[match_id]['result'] = ""
-          # updated_user.history[match_id]['time'] = match.time
-
           updated_user.history[match_id] = {
-            "bet_option": BetType.UNCHOSEN.value,
-            "result": "",
-            'time': match.time,
-            'used_hopestar': 0
+              "bet_option": BetType.UNCHOSEN.value,
+              "result": "",
+              'time': match.time,
+              'used_hopestar': 0
           }
 
-          # user.history[match_id] = {}
-          # user.history[match_id]['bet_option'] = BetType.UNCHOSEN
-          # user.history[match_id]['result'] = ""
-          # user.history[match_id]['time'] = match.time
-
-          #print("after:", user.history)
-          # user.history[match_id] = {
-
-          # }
-          #print("here")
-
         if match.is_over:
-          #user did not bet
-          #updated_user = copy.deepcopy(user)
           if updated_user.history[match_id][
               'bet_option'] == BetType.UNCHOSEN.value:
             updated_user.history[match_id]['bet_option'] = randint(1, 4)
-
-          #print(updated_user.history[match_id]['result'] == '')
-          #print(updated_user.history[match_id]['result'] == '')
           if updated_user.history[match_id]['result'] == '':
             result = self.calculator.calculate(
-              updated_user.history[match_id]['bet_option'],
-              match.asian_handicap, match.over_under, match.result)
-            #print(updated_user.name, match_id, result.name)
-
-            #print("after calculate", updated_user.user_id, result.name)
+                updated_user.history[match_id]['bet_option'],
+                match.asian_handicap, match.over_under, match.result)
             if result == Result.WIN or result == Result.HALF_WIN:
               updated_user.win += 1
 
@@ -304,18 +257,13 @@ class Updator:
 
             if result == Result.DRAW:
               updated_user.draw += 1
-            
-            #print("before:", updated_user.user_id, result.name) #Win -> D*
+
             if updated_user.history[match_id]['used_hopestar']:
               result = star_converter[result]
-            #print("after:", updated_user.user_id, result.name)
-              
+
             updated_user.history[match_id]['result'] = result.name
-            #print(match_id, updated_user.history[match_id]['result'])
             updated_user.score += result.value
 
-
-      #print(updated_user.name, updated_user.score, updated_user.history)
       self.user_table.update_user(updated_user)
 
     print("Done updating user bet history")
