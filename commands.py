@@ -1,6 +1,6 @@
 import discord
 import logging
-from utilities import from_register_channel, from_admin, from_right_user, get_help_embed, create_private_channel, generate_user_summary, kick_user, delete_user_channel, get_daily_bet, generate_bet_item, send_bet_message
+from utilities import from_register_channel, from_admin, from_right_user, generate_star_convert_modal, get_help_embed, create_private_channel, generate_user_summary, kick_user, delete_user_channel, get_daily_bet, generate_bet_item, send_bet_message
 from config import ADMIN_ID_1, ADMIN_ID_2, GUILD_ID
 from database import get_user_table, get_match_table
 from user import User
@@ -66,8 +66,10 @@ def setup_commands(tree, client, events_api):
             await user_channel.send(content="Welcome {0}!".format(
                 user_channel.name),
                                     embeds=[embed_content])
+            finished_match_count = get_match_table().get_finished_match_count()
             user_entity = User(user.id, user.name, user_channel.id,
-                               user_channel.name, 0, 0, 0, 0, {}, 2)
+                               user_channel.name, 0, 0, 0, 0, {}, 2,
+                               finished_match_count, 0)
             get_user_table().add_user(user_entity)
             # updator = Updator()
             # updator.update_user_bet_history(user.id)
@@ -110,8 +112,10 @@ def setup_commands(tree, client, events_api):
             embed_content = get_help_embed()
             await user_channel.send(content="Welcome {0}!".format(user.name),
                                     embeds=[embed_content])
+            finished_match_count = get_match_table().get_finished_match_count()
             user_entity = User(user.id, user.name, user_channel.id,
-                               user_channel.name, 0, 0, 0, 0, {}, 2)
+                               user_channel.name, 0, 0, 0, 0, {}, 2,
+                               finished_match_count, 0)
             get_user_table().add_user(user_entity)
             updator = Updator()
             updator.update_user_bet_history(user.id)
@@ -170,6 +174,7 @@ def setup_commands(tree, client, events_api):
             updator = Updator()
             updator.update_ended_matches()
             updator.update_all_user_bet_history()
+            updator.update_user_reward_hopestar()
             await interaction.followup.send(
                 content="Scores updated successfully!")
         except Exception as e:
@@ -340,3 +345,34 @@ def setup_commands(tree, client, events_api):
             logging.error(f"Error in help command: {e}")
             await interaction.response.send_message(
                 content="An error occurred while providing help.")
+
+    @tree.command(name="convert",
+                  description="Convert point to star, 7k5 each")
+    async def convert(interaction: discord.Interaction):
+        try:
+            if from_register_channel(interaction):
+                await interaction.response.send_message(
+                    content='You can only use /register in this channel.')
+                return
+
+            if not from_right_user(interaction):
+                await interaction.response.send_message(
+                    content='Please go to your channel {0} to use this command.'
+                    .format(interaction.channel.name))
+                return
+
+            user_id = str(interaction.user.id)
+            user = get_user_table().view_user(user_id)
+            if not user:
+                await interaction.response.send_message(
+                    content="No user record found.")
+                return
+
+            user_current_score = user.score
+            convert_modal = generate_star_convert_modal(user_current_score)
+            await interaction.response.send_modal(convert_modal)
+
+        except Exception as e:
+            logging.error(f"Error in help command: {e}")
+            await interaction.response.send_message(
+                content="An error occurred while using convert.")

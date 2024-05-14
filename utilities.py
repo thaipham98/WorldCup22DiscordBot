@@ -3,22 +3,25 @@ from config import ADMIN_ID_1, ADMIN_ID_2, ADMIN_ID_3, REGISTER_CHANNEL_ID, ADMI
 from database import get_user_table
 import discord
 from result import get_result_shorthand
-from discord.ui import Select, View
+from discord.ui import Item, Select, View, Modal, TextInput
 import datetime
 import pytz
 import copy
 from bet_type import BetType, bet_type_converter
 from bet_model import BetModel
 
+HOPESTAR_PRICE = 10000
+
 
 def check_user_permission(interaction):
-    # Implementation here
-    return True
+  # Implementation here
+  return True
+
 
 def get_daily_bet(events_api):
   current_time = datetime.datetime.now()
   today = "{:02d}".format(current_time.year) + "{:02d}".format(
-    current_time.month) + "{:02d}".format(current_time.day)
+      current_time.month) + "{:02d}".format(current_time.day)
   # today = '20221201'
   # TODO: replace this temp date with today date above
   upcoming_daily_matches = events_api.get_upcoming_daily_events(today)
@@ -47,9 +50,11 @@ def get_daily_bet(events_api):
   daily_bet = bet_model.from_daily_matches_to_daily_bet(daily_matches)
   return daily_bet
 
+
 async def delete_user_channel(client, user_channel_id):
   channel = client.get_channel(user_channel_id)
   await channel.delete()
+
 
 async def kick_user(client, interaction, user_id):
   user_entity = get_user_table().view_user(user_id)
@@ -65,15 +70,16 @@ async def kick_user(client, interaction, user_id):
   #print("channel_id=", channel_id)
   return channel_id
 
+
 async def create_private_channel(client, interaction, user_id, channel_name):
   user = client.get_user(int(user_id))
   bot = client.get_user(BOT_ID)
   guild = interaction.guild
   category = discord.utils.get(guild.categories, name=BET_CHANNEL_NAME)
   overwrites = {
-    guild.default_role: discord.PermissionOverwrite(read_messages=False),
-    user: discord.PermissionOverwrite(view_channel=True),
-    bot: discord.PermissionOverwrite(view_channel=True)
+      guild.default_role: discord.PermissionOverwrite(read_messages=False),
+      user: discord.PermissionOverwrite(view_channel=True),
+      bot: discord.PermissionOverwrite(view_channel=True)
   }
 
   guild = interaction.guild
@@ -84,6 +90,7 @@ async def create_private_channel(client, interaction, user_id, channel_name):
                                             category=category)
 
   return user, channel
+
 
 def update_hopestar_selection_for_user(user_id, match_id, selection):
   user = get_user_table().view_user(user_id)
@@ -100,13 +107,15 @@ def update_hopestar_selection_for_user(user_id, match_id, selection):
     updated_user.hopestar += 1
   get_user_table().update_user(updated_user)
 
+
 async def send_bet_message(interaction, bet_detail, user_bet_for_match,
-       match_info):
-    embed_content = generate_bet_item(bet_detail, match_info, user_bet_for_match)
-    view = generate_bet_actions(bet_detail, user_bet_for_match, match_info)
-    await interaction.followup.send(content='Lên kèo',
-                  embeds=[embed_content],
-                  view=view)
+                           match_info):
+  embed_content = generate_bet_item(bet_detail, match_info, user_bet_for_match)
+  view = generate_bet_actions(bet_detail, user_bet_for_match, match_info)
+  await interaction.followup.send(content='Lên kèo',
+                                  embeds=[embed_content],
+                                  view=view)
+
 
 def update_selection_for_user(user_id, match_id, selection):
   user = get_user_table().view_user(user_id)
@@ -119,11 +128,13 @@ def update_selection_for_user(user_id, match_id, selection):
 
   get_user_table().update_user(updated_user)
 
+
 def formatTime(epoch):
   tz = pytz.timezone('Asia/Ho_Chi_Minh')
   dt = datetime.datetime.fromtimestamp(epoch, tz)
   # print it
   return dt.strftime('%d/%m/%Y %H:%M')
+
 
 def from_right_user(interaction):
   user_id = str(interaction.user.id)
@@ -135,12 +146,13 @@ def from_right_user(interaction):
 
 def from_admin(interaction):
   return interaction.channel.name == 'admin' and interaction.channel_id == ADMIN_CHANNEL_ID and (
-      interaction.user.id == ADMIN_ID_1
-      or interaction.user.id == ADMIN_ID_2
+      interaction.user.id == ADMIN_ID_1 or interaction.user.id == ADMIN_ID_2
       or interaction.user.id == ADMIN_ID_3)
+
 
 def from_register_channel(interaction):
   return interaction.channel.id == REGISTER_CHANNEL_ID
+
 
 def get_help_embed():
   embed_content = discord.Embed(type='rich',
@@ -148,8 +160,8 @@ def get_help_embed():
                                 colour=discord.Colour.from_str('#7F1431'),
                                 description="Some commands I'm capable to do:")
   embed_content.set_thumbnail(
-    url=
-    'https://lh3.googleusercontent.com/pw/AL9nZEXNJywRGO5N_wo6lmEf4L0S6uDroOgskWeCtBbcTm8kuunOI_Jm-RS1MwnaGLPO8ZNBc7QgbtXJcBLR5U6SG3cnmXauJ157I-1rb6lc6SN3_qeRWFAoLFLd8gbUmsxRa7gQKit_RXvca0gKhz2rsW_D=s887-no?authuser=0'
+      url=
+      'https://lh3.googleusercontent.com/pw/AL9nZEXNJywRGO5N_wo6lmEf4L0S6uDroOgskWeCtBbcTm8kuunOI_Jm-RS1MwnaGLPO8ZNBc7QgbtXJcBLR5U6SG3cnmXauJ157I-1rb6lc6SN3_qeRWFAoLFLd8gbUmsxRa7gQKit_RXvca0gKhz2rsW_D=s887-no?authuser=0'
   )
   embed_content.set_image(url='https://i.imgur.com/Z9gcRdb.png')
   embed_content.add_field(name=':goggles:  `/profile`',
@@ -172,15 +184,15 @@ def generate_user_summary(user_record, rank=None, isOwner=False):
   history_str = ' '.join([get_result_shorthand(item) for item in history
                           ]) if len(history) > 0 else 'No match found'
   embed_content = discord.Embed(
-    type='rich',
-    title=user_record.channel_name +
-    (f' #{rank}' if rank is not None else '') + (' *' if isOwner else ''),
-    colour=discord.Colour.green()
-    if isOwner else discord.Colour.from_str('#7F1431'))
+      type='rich',
+      title=user_record.channel_name +
+      (f' #{rank}' if rank is not None else '') + (' *' if isOwner else ''),
+      colour=discord.Colour.green()
+      if isOwner else discord.Colour.from_str('#7F1431'))
   embed_content.add_field(
-    name='Win-Draw-Loss',
-    value=f'{user_record.win}-{user_record.draw}-{user_record.loss}',
-    inline=True)
+      name='Win-Draw-Loss',
+      value=f'{user_record.win}-{user_record.draw}-{user_record.loss}',
+      inline=True)
   embed_content.add_field(name='Score', value=user_record.score, inline=True)
   embed_content.add_field(name='History (max 10 recent)',
                           value=history_str,
@@ -188,14 +200,15 @@ def generate_user_summary(user_record, rank=None, isOwner=False):
   embed_content.set_footer(text=f"Hopestar balance: {user_record.hopestar}")
   return embed_content
 
+
 def generate_bet_item(bet_detail, match_info, user_bet_for_match=None):
   embed_content = discord.Embed(
-    type='rich',
-    title=
-    f'{bet_detail.home} (home) - {bet_detail.away} (away) {":star:" if (user_bet_for_match is not None and user_bet_for_match["used_hopestar"]) else ""}',
-    description=f'{formatTime(match_info["time"])} VN time'
-    if match_info else None,
-    colour=discord.Colour.from_str('#7F1431'))
+      type='rich',
+      title=
+      f'{bet_detail.home} (home) - {bet_detail.away} (away) {":star:" if (user_bet_for_match is not None and user_bet_for_match["used_hopestar"]) else ""}',
+      description=f'{formatTime(match_info["time"])} VN time'
+      if match_info else None,
+      colour=discord.Colour.from_str('#7F1431'))
   embed_content.add_field(name='Chấp',
                           value=bet_detail.asian_handicap,
                           inline=True)
@@ -203,6 +216,7 @@ def generate_bet_item(bet_detail, match_info, user_bet_for_match=None):
                           value=bet_detail.over_under,
                           inline=True)
   return embed_content
+
 
 def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
   lock_time_before_match = 15 * 60
@@ -214,18 +228,18 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
 
   view = View(timeout=None)
   bet_select = Select(options=[
-    discord.SelectOption(label='Home',
-                         value=BetType.HOME.value,
-                         default=default_bet == BetType.HOME.value),
-    discord.SelectOption(label='Away',
-                         value=BetType.AWAY.value,
-                         default=default_bet == BetType.AWAY.value),
-    discord.SelectOption(label='Over',
-                         value=BetType.OVER.value,
-                         default=default_bet == BetType.OVER.value),
-    discord.SelectOption(label='Under',
-                         value=BetType.UNDER.value,
-                         default=default_bet == BetType.UNDER.value)
+      discord.SelectOption(label='Home',
+                           value=BetType.HOME.value,
+                           default=default_bet == BetType.HOME.value),
+      discord.SelectOption(label='Away',
+                           value=BetType.AWAY.value,
+                           default=default_bet == BetType.AWAY.value),
+      discord.SelectOption(label='Over',
+                           value=BetType.OVER.value,
+                           default=default_bet == BetType.OVER.value),
+      discord.SelectOption(label='Under',
+                           value=BetType.UNDER.value,
+                           default=default_bet == BetType.UNDER.value)
   ],
                       disabled=not bet_changable or match_info['is_over'])
 
@@ -234,30 +248,30 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
                            ) <= bet_detail.time - lock_time_before_match
     if not select_changable:
       await interaction.response.edit_message(
-        content='Quá giờ r đừng có ăn gian', view=None)
+          content='Quá giờ r đừng có ăn gian', view=None)
       return
     selection = int(bet_select.values[0])
     update_selection_for_user(str(interaction.user.id), bet_detail.match_id,
                               selection)
 
     await interaction.response.send_message(
-      content=
-      f"You chose {bet_type_converter[selection]} for match {match_info['home']} - {match_info['away']} | ah: {match_info['asian_handicap']} - ou: {match_info['over_under']}"
+        content=
+        f"You chose {bet_type_converter[selection]} for match {match_info['home']} - {match_info['away']} | ah: {match_info['asian_handicap']} - ou: {match_info['over_under']}"
     )
 
   bet_select.callback = on_bet_select_callback
   view.add_item(bet_select)
 
   default_hopestar = user_bet_for_match[
-    "used_hopestar"] if user_bet_for_match else 0
+      "used_hopestar"] if user_bet_for_match else 0
 
   hopestar_select = Select(options=[
-    discord.SelectOption(label='Use hopestar',
-                         value=1,
-                         default=default_hopestar == 1),
-    discord.SelectOption(label='Not use hopestar',
-                         value=0,
-                         default=default_hopestar == 0)
+      discord.SelectOption(label='Use hopestar',
+                           value=1,
+                           default=default_hopestar == 1),
+      discord.SelectOption(label='Not use hopestar',
+                           value=0,
+                           default=default_hopestar == 0)
   ],
                            disabled=not bet_changable or match_info['is_over'])
 
@@ -266,7 +280,7 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
                            ) <= bet_detail.time - lock_time_before_match
     if not select_changable:
       await interaction.response.edit_message(
-        content='Quá giờ r đừng có ăn gian', view=None)
+          content='Quá giờ r đừng có ăn gian', view=None)
       return
     selection = int(hopestar_select.values[0])
 
@@ -282,8 +296,8 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
                                          selection)
 
     await interaction.response.send_message(
-      content=
-      f"You {'selected' if selection == 1 else 'did not select'} hopestar for match {match_info['home']} - {match_info['away']} | ah: {match_info['asian_handicap']} - ou: {match_info['over_under']}"
+        content=
+        f"You {'selected' if selection == 1 else 'did not select'} hopestar for match {match_info['home']} - {match_info['away']} | ah: {match_info['asian_handicap']} - ou: {match_info['over_under']}"
     )
 
   hopestar_select.callback = on_hopestar_select_callback
@@ -291,3 +305,62 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
 
   return view
 
+
+def update_hopestar_after_converting(user_id, hopestar_amount):
+  user = get_user_table().view_user(user_id)
+
+  if user is None:
+    return False
+
+  if user.score < hopestar_amount * HOPESTAR_PRICE:
+    return False
+
+  updated_user = copy.deepcopy(user)
+  updated_user.hopestar += hopestar_amount
+  updated_user.score -= hopestar_amount * HOPESTAR_PRICE
+
+  get_user_table().update_user(updated_user)
+
+  return True
+
+
+def generate_star_convert_modal(current_score):
+  convert_modal = Modal(title="Mua sao đê")
+  convert_star_input = TextInput(label="Đang có " + str(current_score) +
+                                 " điểm. Mỗi sao 10k. Mua bn?",
+                                 required=True,
+                                 max_length=5,
+                                 min_length=1)
+
+  async def on_submit(interaction):
+    try:
+      convert_star_input_value = int(convert_star_input.value)
+      if convert_star_input_value is None:
+        await interaction.response.send_message(content='Viết đ gì đấy?')
+        return
+      if convert_star_input_value < 1:
+        await interaction.response.send_message(content='Hack ăn loz à?')
+        return
+      star_buyable = convert_star_input_value * HOPESTAR_PRICE <= current_score
+      if not star_buyable:
+        await interaction.response.send_message(content='Nghèo như chó đòi mua'
+                                                )
+        return
+      result = update_hopestar_after_converting(str(interaction.user.id),
+                                                convert_star_input_value)
+      if not result:
+        await interaction.response.send_message(content='Chưa mua được đâu')
+      else:
+        new_score = current_score - convert_star_input_value * HOPESTAR_PRICE
+        await interaction.response.send_message(
+            content='Đã mua ' + str(convert_star_input_value) + ' sao.' +
+            ' Điểm cũ là: ' + str(current_score) + '. Điểm mới là: ' +
+            str(new_score))
+    except Exception as e:
+      print(e)
+      await interaction.response.send_message(content='Viết đ gì đấy?')
+      return
+
+  convert_modal.add_item(convert_star_input)
+  convert_modal.on_submit = on_submit
+  return convert_modal

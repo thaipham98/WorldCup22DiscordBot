@@ -267,3 +267,17 @@ class Updator:
       self.user_table.update_user(updated_user)
 
     print("Done updating user bet history")
+
+  def update_user_reward_hopestar(self):
+    users = self.user_table.view_all()
+    for user in users:
+      updated_user = copy.deepcopy(user)
+      user_total_reward_hopestar = get_user_total_reward_hopestar(updated_user.id)
+      user_current_reward_hopestar = updated_user.hopestar_reward_granted
+      if user_total_reward_hopestar > user_current_reward_hopestar:
+        hopestar_to_add = user_total_reward_hopestar - user_current_reward_hopestar
+        updated_user.hopestar += hopestar_to_add
+        updated_user.hopestar_reward_granted = user_total_reward_hopestar
+        # TODO: notify user about hopestar rewarded
+      self.user_table.update_user(updated_user)
+    print("Done updating user bet hopestar")
