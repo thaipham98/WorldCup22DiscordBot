@@ -1,10 +1,12 @@
 import discord
+from discord.ui import Button, View
 import logging
 from utilities import from_register_channel, from_admin, from_right_user, generate_star_convert_modal, get_help_embed, create_private_channel, generate_user_summary, kick_user, delete_user_channel, get_daily_bet, generate_bet_item, send_bet_message
-from config import ADMIN_ID_1, ADMIN_ID_2, GUILD_ID
+from config import ADMIN_CHANNEL_ID, ADMIN_ID_1, ADMIN_ID_2, ADMIN_ID_3, GUILD_ID
 from database import get_user_table, get_match_table
 from user import User
 from updator import Updator
+from discord import ButtonStyle
 
 
 def setup_commands(tree, client, events_api):
@@ -21,7 +23,8 @@ def setup_commands(tree, client, events_api):
     @tree.command(name="clear", description="Clear all chat history")
     async def clear_chat(interaction: discord.Interaction):
         try:
-            if interaction.user.id in (int(ADMIN_ID_1), int(ADMIN_ID_2)):
+            if interaction.user.id in (int(ADMIN_ID_1), int(ADMIN_ID_2),
+                                       int(ADMIN_ID_3)):
                 await interaction.response.send_message(
                     content="All messages have been cleared")
                 await interaction.channel.purge()
@@ -44,43 +47,84 @@ def setup_commands(tree, client, events_api):
     @tree.command(name="register", description="Register")
     async def register_player(interaction: discord.Interaction,
                               channel_name: str):
-        try:
-            if not from_register_channel(interaction):
-                await interaction.response.send_message(
-                    content="Please go to Welcome/register channel to register."
-                )
-                return
+        if not from_register_channel(interaction):
+            await interaction.response.send_message(
+                content="Please go to Welcome/register channel to register")
+            return
 
-            user_id = str(interaction.user.id)
-            user_entity = get_user_table().view_user(user_id)
-            if user_entity:
-                await interaction.response.send_message(
-                    content=
-                    'You already registered a channel with the name of {0} for this account.'
-                    .format(user_entity.channel_name))
-                return
-
-            user, user_channel = await create_private_channel(
-                client, interaction, user_id, channel_name)
-            embed_content = get_help_embed()
-            await user_channel.send(content="Welcome {0}!".format(
-                user_channel.name),
-                                    embeds=[embed_content])
-            finished_match_count = get_match_table().get_finished_match_count()
-            user_entity = User(user.id, user.name, user_channel.id,
-                               user_channel.name, 0, 0, 0, 0, {}, 2,
-                               finished_match_count, 0)
-            get_user_table().add_user(user_entity)
-            # updator = Updator()
-            # updator.update_user_bet_history(user.id)
+        user_id = str(interaction.user.id)
+        user_entity = get_user_table().view_user(user_id)
+        if user_entity is not None:
             await interaction.response.send_message(
                 content=
-                "Channel {0} is created for {1}. Please go to your right channel in Bet Channels."
-                .format(channel_name, user.name))
-        except Exception as e:
-            logging.error(f"Error in register_player command: {e}")
+                f'You already registered a channel with the name of {user_entity.channel_name} for this account'
+            )
+            return
+
+        async def on_button_click(interaction):
+            if interaction.data['custom_id'].startswith("approve___"):
+                _, user_id, channel_name = interaction.data['custom_id'].split(
+                    "___")
+
+                if from_admin(interaction):
+                    user, user_channel = await create_private_channel(
+                        client, interaction, user_id, channel_name)
+                    embed_content = get_help_embed()
+                    await user_channel.send(
+                        content=f"Welcome {user_channel.name}!",
+                        embeds=[embed_content])
+                    finished_match_count = get_match_table(
+                    ).get_finished_match_count()
+                    user_entity = User(user.id, user.name, user_channel.id,
+                                       user_channel.name, 0, 0, 0, 0, {}, 2,
+                                       finished_match_count, 0)
+                    get_user_table().add_user(user_entity)
+                    # updator = Updator()
+                    # updator.update_user_bet_history(user.id)
+                    await interaction.response.edit_message(
+                        content=
+                        f"Channel {channel_name} is created for {user.name}. Please go to your right channel in Bet Channels.",
+                        view=None)
+                else:
+                    await interaction.response.send_message(
+                        content=
+                        "You do not have permission to approve registrations.")
+
+        admin_channel = client.get_channel(ADMIN_CHANNEL_ID)
+
+        if not admin_channel:
             await interaction.response.send_message(
-                content="An error occurred during registration.")
+                content=
+                "Admin channel not found. Please contact the server administrators."
+            )
+            return
+        try:
+            # Send registration request to admin channel with button for approval
+            approval_button = Button(
+                style=ButtonStyle.green,
+                label="Approve",
+                custom_id=f"approve___{user_id}___{channel_name}")
+            view = View(timeout=None)
+            approval_button.callback = on_button_click
+            view.add_item(approval_button)
+            await admin_channel.send(
+                content=
+                f"New registration request from user {interaction.user.name} for creating channel: {channel_name}",
+                view=view)
+            await interaction.response.send_message(
+                content=
+                "Your registration request has been sent to the admins for approval. Please wait for confirmation."
+            )
+        except discord.errors.Forbidden:
+            await interaction.response.send_message(
+                content=
+                "Bot does not have permission to send messages in the admin channel."
+            )
+        except Exception as e:
+            await interaction.response.send_message(
+                content=
+                f"An error occurred while sending the registration request: {e}"
+            )
 
     @tree.command(name="create", description="Create a new player")
     async def create_player(interaction: discord.Interaction, user_id: str,
