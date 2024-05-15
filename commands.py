@@ -2,7 +2,7 @@ import discord
 from discord.ui import Button, View
 import logging
 from utilities import from_register_channel, from_admin, from_right_user, generate_star_convert_modal, get_help_embed, create_private_channel, generate_user_summary, kick_user, delete_user_channel, get_daily_bet, generate_bet_item, send_bet_message
-from config import ADMIN_CHANNEL_ID, ADMIN_ID_1, ADMIN_ID_2, ADMIN_ID_3, GUILD_ID
+from config import ADMIN_CHANNEL_ID, ADMIN_ID_1, ADMIN_ID_2, ADMIN_ID_3, GUILD_ID, REGISTER_CHANNEL_ID
 from database import get_user_table, get_match_table
 from user import User
 from updator import Updator
@@ -35,7 +35,7 @@ def setup_commands(tree, client, events_api):
             await interaction.response.send_message(
                 content="Failed to clear chat due to an error.")
 
-    @tree.command(name="register", description="Register")
+    @tree.command(name="register", description="Register a channel to bet")
     async def register_player(interaction: discord.Interaction,
                               channel_name: str):
         if not from_register_channel(interaction):
@@ -53,33 +53,47 @@ def setup_commands(tree, client, events_api):
             return
 
         async def on_button_click(interaction):
-            if interaction.data['custom_id'].startswith("approve___"):
-                _, user_id, channel_name = interaction.data['custom_id'].split(
-                    "___")
+            if not interaction.data['custom_id'].startswith("approve___"):
+                return
 
-                if from_admin(interaction):
-                    user, user_channel = await create_private_channel(
-                        client, interaction, user_id, channel_name)
-                    embed_content = get_help_embed()
-                    await user_channel.send(
-                        content=f"Welcome {user_channel.name}!",
-                        embeds=[embed_content])
-                    finished_match_count = get_match_table(
-                    ).get_finished_match_count()
-                    user_entity = User(user.id, user.name, user_channel.id,
-                                       user_channel.name, 0, 0, 0, 0, {}, 2,
-                                       finished_match_count, 0)
-                    get_user_table().add_user(user_entity)
-                    # updator = Updator()
-                    # updator.update_user_bet_history(user.id)
-                    await interaction.response.edit_message(
-                        content=
-                        f"Channel {channel_name} is created for {user.name}. Please go to your right channel in Bet Channels.",
-                        view=None)
-                else:
-                    await interaction.response.send_message(
-                        content=
-                        "You do not have permission to approve registrations.")
+            _, user_id, channel_name = interaction.data['custom_id'].split(
+                "___")
+
+            if not from_admin(interaction):
+                await interaction.response.send_message(
+                    content=
+                    "You do not have permission to approve registrations.")
+                return
+
+            user_entity = get_user_table().view_user(user_id)
+            if user_entity:
+                await interaction.response.edit_message(
+                    content='User with name = {0} already exists.'.format(
+                        user_entity.name),
+                    view=None)
+                return
+
+            user, user_channel = await create_private_channel(
+                client, interaction, user_id, channel_name)
+            embed_content = get_help_embed()
+            await user_channel.send(content=f"Welcome {user_channel.name}!",
+                                    embeds=[embed_content])
+            finished_match_count = get_match_table().get_finished_match_count()
+            user_entity = User(user.id, user.name, user_channel.id,
+                               user_channel.name, 0, 0, 0, 0, {}, 2,
+                               finished_match_count, 0)
+            get_user_table().add_user(user_entity)
+            # updator = Updator()
+            # updator.update_user_bet_history(user.id)
+            await interaction.response.edit_message(
+                content=f'Registration appproved for {user.name}', view=None)
+            register_channel = client.get_channel(REGISTER_CHANNEL_ID)
+            if not register_channel:
+                return
+            await register_channel.send(
+                content=
+                f"Hi <@{user.id}>, channel {channel_name} is created. Please go to your right channel in Bet Channels.",
+                view=None)
 
         admin_channel = client.get_channel(ADMIN_CHANNEL_ID)
 
@@ -143,7 +157,7 @@ def setup_commands(tree, client, events_api):
                 return
 
             user, user_channel = await create_private_channel(
-                interaction, user_id, channel_name)
+                client, interaction, user_id, channel_name)
             embed_content = get_help_embed()
             await user_channel.send(content="Welcome {0}!".format(user.name),
                                     embeds=[embed_content])
@@ -381,8 +395,7 @@ def setup_commands(tree, client, events_api):
             await interaction.response.send_message(
                 content="An error occurred while providing help.")
 
-    @tree.command(name="convert",
-                  description="Convert point to star, 7k5 each")
+    @tree.command(name="convert", description="Convert point to star")
     async def convert(interaction: discord.Interaction):
         try:
             if from_register_channel(interaction):
