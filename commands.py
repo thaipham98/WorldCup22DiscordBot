@@ -11,15 +11,6 @@ from discord import ButtonStyle
 
 def setup_commands(tree, client, events_api):
 
-    @tree.command(name="hello", description="hello")
-    async def hello(interaction: discord.Interaction):
-        try:
-            await interaction.response.send_message(content="Hello!")
-        except Exception as e:
-            logging.error(f"Error in hello command: {e}")
-            await interaction.response.send_message(
-                content="An error occurred while processing your request.")
-
     @tree.command(name="clear", description="Clear all chat history")
     async def clear_chat(interaction: discord.Interaction):
         try:
