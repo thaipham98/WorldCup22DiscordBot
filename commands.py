@@ -1,12 +1,14 @@
 import discord
 from discord.ui import Button, View
 import logging
-from utilities import from_register_channel, from_admin, from_right_user, generate_star_convert_modal, get_help_embed, create_private_channel, generate_user_summary, kick_user, delete_user_channel, get_daily_bet, generate_bet_item, send_bet_message
+from utilities import delete_verify_channel, from_register_channel, from_admin, from_right_user, generate_star_convert_modal, get_help_embed, create_private_channel, generate_user_summary, kick_user, delete_user_channel, get_daily_bet, generate_bet_item, send_bet_message, create_verify_private_channel
 from config import ADMIN_CHANNEL_ID, ADMIN_ID_1, ADMIN_ID_2, ADMIN_ID_3, GUILD_ID, REGISTER_CHANNEL_ID
-from database import get_user_table, get_match_table
+from database import get_user_table, get_match_table, get_verification_table
 from user import User
 from updator import Updator
 from discord import ButtonStyle
+
+from verification import Verification
 
 
 def setup_commands(tree, client, events_api):
@@ -52,6 +54,23 @@ def setup_commands(tree, client, events_api):
             )
             return
 
+        user_verification =  get_verification_table().view_verification(user_id)
+
+        if user_verification is not None:
+            await interaction.response.send_message(content="You already sent a register request. Please wait for admin to approve your request")
+            return
+
+        user, user_verify_channel = await create_verify_private_channel(
+            client, interaction, user_id, channel_name)
+        
+        verification_entity = Verification(user_id, channel_name, user_verify_channel.id, False)
+        get_verification_table().add_verification(verification_entity)
+
+        await user_verify_channel.send(
+            content=
+            f"Hi <@{user.id}>, please attach your confirmation here before creating bet channel",
+            view=None)
+        
         async def on_button_click(interaction):
             if not interaction.data['custom_id'].startswith("approve___"):
                 return
@@ -83,6 +102,7 @@ def setup_commands(tree, client, events_api):
                                user_channel.name, 0, 0, 0, 0, {}, 2,
                                finished_match_count, 0)
             get_user_table().add_user(user_entity)
+            get_verification_table().verify(user_id)
             # updator = Updator()
             # updator.update_user_bet_history(user.id)
             await interaction.response.edit_message(
@@ -193,9 +213,10 @@ def setup_commands(tree, client, events_api):
                     format(user_id))
                 return
 
-            user_channel_id = await kick_user(client, interaction, user_id)
+            user_channel_id, verify_channel_id = await kick_user(client, interaction, user_id)
             if user_channel_id:
                 await delete_user_channel(client, user_channel_id)
+                await delete_verify_channel(client, verify_channel_id)
                 await interaction.response.send_message(
                     content="User with id = {0} has been deleted.".format(
                         user_id))

@@ -10,6 +10,7 @@ ADMIN_ID_3 = int(os.getenv('ADMIN_ID_3'))
 REGISTER_CHANNEL_ID = int(os.getenv('REGISTER_CHANNEL_ID'))
 BOT_ID = int(os.getenv('BOT_ID'))
 BET_CHANNEL_NAME = 'Bet Channels'
+VERIFY_CHANNEL_NAME = 'Verify'
 
 intents = discord.Intents.default()
 intents.messages = True

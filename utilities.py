@@ -1,6 +1,6 @@
 # utilities.py
-from config import ADMIN_ID_1, ADMIN_ID_2, ADMIN_ID_3, REGISTER_CHANNEL_ID, ADMIN_CHANNEL_ID, BOT_ID, BET_CHANNEL_NAME
-from database import get_user_table
+from config import ADMIN_ID_1, ADMIN_ID_2, ADMIN_ID_3, REGISTER_CHANNEL_ID, ADMIN_CHANNEL_ID, BOT_ID, BET_CHANNEL_NAME, VERIFY_CHANNEL_NAME
+from database import get_user_table, get_verification_table
 import discord
 from result import get_result_shorthand
 from discord.ui import Item, Select, View, Modal, TextInput
@@ -55,20 +55,30 @@ async def delete_user_channel(client, user_channel_id):
   channel = client.get_channel(user_channel_id)
   await channel.delete()
 
+async def delete_verify_channel(client, verify_channel_id):
+  channel = client.get_channel(verify_channel_id)
+  await channel.delete()
 
 async def kick_user(client, interaction, user_id):
   user_entity = get_user_table().view_user(user_id)
   if user_entity is None:
     print("There is no user with id = {0} a".format(user_id))
     return 0
-
+  verification_entity = get_verification_table().view_verification(user_id)
+  
+  if verification_entity is None:
+    print("There is no verification with id = {0} a".format(user_id))
+    return 0
+    
   channel_id = user_entity.channel_id
+  verify_channel_id = verification_entity.verify_channel_id
   get_user_table().delete_user(user_id)
-
+  get_verification_table().delete_verification(user_id)
+  
   user = client.get_user(int(user_id))
   #await interaction.guild.kick(user)
   #print("channel_id=", channel_id)
-  return channel_id
+  return channel_id, verify_channel_id
 
 
 async def create_private_channel(client, interaction, user_id, channel_name):
@@ -90,6 +100,28 @@ async def create_private_channel(client, interaction, user_id, channel_name):
                                             category=category)
 
   return user, channel
+
+async def create_verify_private_channel(client, interaction, user_id, channel_name):
+  user = client.get_user(int(user_id))
+  bot = client.get_user(BOT_ID)
+  guild = interaction.guild
+  category = discord.utils.get(guild.categories, name=VERIFY_CHANNEL_NAME)
+  overwrites = {
+      guild.default_role: discord.PermissionOverwrite(read_messages=False),
+      user: discord.PermissionOverwrite(view_channel=True),
+      bot: discord.PermissionOverwrite(view_channel=True)
+  }
+
+  guild = interaction.guild
+  category = discord.utils.get(guild.categories, name=VERIFY_CHANNEL_NAME)
+
+  verify_channel_name = "verify-" + user.name + "-" + channel_name
+  channel = await guild.create_text_channel(verify_channel_name,
+                                            overwrites=overwrites,
+                                            category=category)
+
+  return user, channel
+  
 
 
 def update_hopestar_selection_for_user(user_id, match_id, selection):
