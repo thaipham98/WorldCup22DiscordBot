@@ -6,6 +6,7 @@ from database import backup_database
 from cron_jobs import setup_cron_jobs
 from commands import setup_commands
 from events_api import Event_API
+from config import LEADERBOARD_CHANNEL_ID, LEADERBOARD_MESSAGE_ID
 
 token = os.getenv('TOKEN')
 intents = discord.Intents.default()
@@ -29,7 +30,8 @@ class CustomClient(discord.Client):
             # setup_commands(self.tree, self,
             #                self.events_api)  # Pass client and API to commands
             print(f"We have logged in as {self.user}.")
-        #setup_cron_jobs(self)
+        
+        setup_cron_jobs(self)
         #backup_database()
 
 

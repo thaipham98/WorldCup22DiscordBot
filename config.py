@@ -11,7 +11,8 @@ REGISTER_CHANNEL_ID = int(os.getenv('REGISTER_CHANNEL_ID'))
 BOT_ID = int(os.getenv('BOT_ID'))
 BET_CHANNEL_NAME = 'Bet Channels'
 VERIFY_CHANNEL_NAME = 'Verify'
-
+LEADERBOARD_CHANNEL_ID = int(os.getenv('LEADERBOARD_CHANNEL_ID'))
+LEADERBOARD_MESSAGE_ID = None
 intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True

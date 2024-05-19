@@ -72,6 +72,18 @@ class UserTable:
 
     return users
 
+  # def get_leaderboard(self):
+  #   all_users = self.view_all()
+  #   leaderboard = sorted(all_users, key=lambda user: user.score, reverse=True)
+  #   if leaderboard:
+  #     leaderboard_table = "Leaderboard:\n"
+  #     for i, user in enumerate(leaderboard, 1):
+  #         leaderboard_table += f"{i}. {user.name} - {user.score} points\n"
+  #   else:
+  #     leaderboard_table = "No data available."
+  #   return leaderboard_table
+ 
+
     
     
     

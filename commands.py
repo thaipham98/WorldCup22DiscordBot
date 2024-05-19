@@ -11,6 +11,7 @@ from discord import ButtonStyle
 from verification import Verification
 
 
+
 def setup_commands(tree, client, events_api):
 
     @tree.command(name="clear", description="Clear all chat history")
@@ -231,6 +232,7 @@ def setup_commands(tree, client, events_api):
     # Additional command implementations should continue in a similar pattern with try-except blocks around their core logic.
 
     # Remember to log important events and catch exceptions to handle them gracefully, providing feedback to the user when something goes wrong.
+    
     @tree.command(name="update", description="Update scores")
     async def update_scores(interaction: discord.Interaction):
         try:
