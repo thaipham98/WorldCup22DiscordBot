@@ -580,3 +580,22 @@ def setup_commands(tree, client, events_api):
             logging.error(f"Error in help command: {e}")
             await interaction.response.send_message(
                 content="An error occurred while using view_bid.")
+
+    @tree.command(name="profile", description="Show your record")
+    async def view_me(interaction: discord.Interaction):
+        if from_register_channel(interaction):
+            await interaction.response.send_message(
+                content='You can only use /register in this channel')
+            return
+        if not from_right_user(interaction):
+            await interaction.response.send_message(
+                content='Please go to your channel {0} to use this command'.
+                format(interaction.channel.name))
+            return
+        user_id = interaction.user.id
+        user = get_user_table().view_user(str(user_id))
+        user_record = user.to_record()
+        embed_content = generate_user_summary(user_record, isOwner=True)
+
+        await interaction.response.send_message(content='',
+                                                embeds=[embed_content])
