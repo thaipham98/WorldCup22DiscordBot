@@ -17,20 +17,16 @@ class CustomClient(discord.Client):
 
     def __init__(self):
         super().__init__(intents=intents)
-        # self.tree = app_commands.CommandTree(self)
-        # self.events_api = Event_API()  # Initialize here and use as needed
         self.synced = False
+        self.events_api = Event_API()
 
     async def on_ready(self):
         await self.wait_until_ready()
         if not self.synced:
             await tree.sync()
             self.synced = True
-            # setup_commands(self.tree, self,
-            #                self.events_api)  # Pass client and API to commands
+            setup_cron_jobs(self, self.events_api)  # Setup cron jobs
             print(f"We have logged in as {self.user}.")
-        #setup_cron_jobs(self)
-        #backup_database()
 
 
 client = CustomClient()

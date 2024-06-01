@@ -117,6 +117,7 @@ async def update_odd_cron_job():
   updator = Updator()
   updator.update_upcoming_matches()
   updator.update_all_user_bet_history()
+  # updator.update_user_reward_hopestar()
 
   admin_channel = client.get_channel(int(os.getenv('ADMIN_CHANNEL_ID')))
   await admin_channel.send("Auto: updated new odds")
@@ -409,6 +410,7 @@ async def update_scores(interaction: discord.Interaction):
     updator.update_ended_matches()
     #updator.update_upcoming_matches()
     updator.update_all_user_bet_history()
+    updator.update_user_reward_hopestar()
     await interaction.followup.send(content="Done updating!")
   else:
     await interaction.response.send_message(
