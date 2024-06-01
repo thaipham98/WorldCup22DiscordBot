@@ -31,6 +31,11 @@ used_hopestar = 'used_hopestar'
 croatia_brazil = '5990135'
 netherlands_argentina = '5982939'
 
+db['user'] = {}
+db['match'] = {}
+db['bid'] = {}
+db['verification'] = {}
+
 #nghia cho vu 1 sao
 # db[user][louis][hopestar] += 1
 # db[user][maxjo][hopestar] -= 1
@@ -95,7 +100,6 @@ netherlands_argentina = '5982939'
 # db[user][bach][hopestar] = 0
 # bach_score = db[user][bach][score]
 # db[user][bach][score] = bach_score + 5500
-  
 
 # db[user][nvm][hopestar] = 2
 # db[user][hieu][hopestar] = 2
@@ -118,10 +122,14 @@ netherlands_argentina = '5982939'
 # db['match'][cameroon_brazil]['is_over'] = True
 
 #ky ban duc 1 sao 6k
-db[user][kidz][score] += 6000
-db[user][duc_ember][score] -= 6000
-db[user][kidz][hopestar] -= 1
-db[user][duc_ember][hopestar] += 1
+# db[user][kidz][score] += 6000
+# db[user][duc_ember][score] -= 6000
+# db[user][kidz][hopestar] -= 1
+# db[user][duc_ember][hopestar] += 1
 
 # migration = Migration()
 # migration.add_hopestar()
+
+# db[user]['379414630256082944'][score] = 100000  #nvm2
+# db[user]['1169333893493706812'][score] = 100000  #hieu2
+# db[user]['770647343371911208'][score] = 100000  #bach2

@@ -50,4 +50,4 @@ def check_user_score_and_result():
     print(user_name, score)
 
 
-check_user_score_and_result()
+# check_user_score_and_result()

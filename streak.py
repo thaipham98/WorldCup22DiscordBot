@@ -2,10 +2,13 @@ from match_table import MatchTable
 from user_table import UserTable
 from database import get_user_table, get_match_table
 
+
 def get_user_match_result_list(user_id):
     user = get_user_table().view_user(str(user_id))
+    if user is None:
+        return []
     user_record = user.get_all_record()
- 
+
     return user_record.history
 
 
@@ -72,18 +75,22 @@ def get_total_reward_hopestar_based_on_streak(streaks):
     return hopestar
 
 
-def get_total_reward_hopestar_based_on_match_list(matches, match_start_index=None):
+def get_total_reward_hopestar_based_on_match_list(matches,
+                                                  match_start_index=None):
     streaks = calculate_streak(matches, match_start_index)
     hopestar = get_total_reward_hopestar_based_on_streak(streaks)
     return hopestar
 
+
 def get_user_total_reward_hopestar(user_id):
     user = get_user_table().view_user(str(user_id))
+    if user is None:
+        return 0
     user_record = user.to_record()
     user_start_match_index = user_record.start_match_index
-    
+
     user_match_result_list = get_user_match_result_list(user_id)
-    
-    total_reward_hopestar = get_total_reward_hopestar_based_on_match_list(user_match_result_list, user_start_match_index)
+
+    total_reward_hopestar = get_total_reward_hopestar_based_on_match_list(
+        user_match_result_list, user_start_match_index)
     return total_reward_hopestar
-    
