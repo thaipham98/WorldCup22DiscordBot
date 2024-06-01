@@ -84,9 +84,9 @@ def setup_cron_jobs(client, events_api):
   async def update_result_cron_job():
     print("auto update running ...")
     updator = Updator()
+    await updator.send_match_results(client)
     updator.update_ended_matches()
     updator.update_all_user_bet_history()
-    updator.send_match_results()
     await updator.update_user_reward_hopestar(client)
     backup_database()
 
