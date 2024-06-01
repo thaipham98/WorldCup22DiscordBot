@@ -293,6 +293,10 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
                       disabled=not bet_changable or match_info['is_over'])
 
   async def on_bet_select_callback(interaction):
+    if not from_right_user(interaction):
+      await interaction.response.send_message(
+          content='Please go to your channel to use this command')
+      return
     select_changable = int(datetime.datetime.now().timestamp()
                            ) <= bet_detail.time - lock_time_before_match
     if not select_changable:
@@ -325,6 +329,10 @@ def generate_bet_actions(bet_detail, user_bet_for_match, match_info):
                            disabled=not bet_changable or match_info['is_over'])
 
   async def on_hopestar_select_callback(interaction):
+    if not from_right_user(interaction):
+      await interaction.response.send_message(
+          content='Please go to your channel to use this command')
+      return
     select_changable = int(datetime.datetime.now().timestamp()
                            ) <= bet_detail.time - lock_time_before_match
     if not select_changable:
