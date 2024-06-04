@@ -43,6 +43,7 @@ class Updator:
     away = match['results'][0]['away']['name']
     time = int(match['results'][0]['time'])
 
+    #get result from bet365
     event_odd = self.api.get_event_odds(event_id, source='bet365')
 
     if event_odd['success'] != 1:
@@ -54,6 +55,14 @@ class Updator:
 
     result = match_odd['odds']['1_2'][0]['ss']
     is_over = (match['results'][0]['ss'] is not None)
+
+    #get odd from ysb88
+    event_odd = self.api.get_event_odds(event_id)
+
+    if event_odd['success'] != 1:
+      print("Cannot get the event odd")
+      return None
+    match_odd = event_odd['results']
 
     asian_handicap = 0
     over_under = 0
@@ -322,7 +331,8 @@ class Updator:
         if update_channel is not None:
           await update_channel.send(
               content=
-              f"<@{user.id}> has been rewarded {hopestar_to_add} hopestar")
+              f"<@{user.user_id}> has been rewarded {hopestar_to_add} hopestar"
+          )
     print("Done updating user bet hopestar")
 
   async def close_trading(self, client):

@@ -13,8 +13,8 @@ def get_user_match_result_list(user_id):
 
 
 def calculate_streak(matches, match_start_index=None):
-    # loss is L or HL
-    # win is W or HW
+    # loss is L or HL or DHL
+    # win is W or HW or DHW
     # draw is D
     # win streak is a positive number of consecutive wins
     # loss streak is a negative number of consecutive losses
@@ -30,7 +30,7 @@ def calculate_streak(matches, match_start_index=None):
     effective_matches = matches[first_effective_match_index:]
 
     for match in effective_matches:
-        if match == 'WIN' or match == 'HALF_WIN' or match == 'DOUBLE_WIN':
+        if match == 'WIN' or match == 'HALF_WIN' or match == 'DOUBLE_WIN' or match == "DOUBLE_HALF_WIN":
             if streak_counter is None:
                 streak_counter = 1
             elif streak_counter <= 0:
@@ -41,7 +41,7 @@ def calculate_streak(matches, match_start_index=None):
                 streak_counter = 1
             else:
                 streak_counter += 1
-        elif match == 'LOSS' or match == 'HALF_LOSS' or match == 'DOUBLE_LOSS':
+        elif match == 'LOSS' or match == 'HALF_LOSS' or match == 'DOUBLE_LOSS' or match == 'DOUBLE_HALF_LOSS':
             if streak_counter is None:
                 streak_counter = -1
             elif streak_counter >= 0:
