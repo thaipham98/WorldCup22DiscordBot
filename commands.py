@@ -330,6 +330,7 @@ def setup_commands(tree, client, events_api):
         if from_admin(interaction):
             await interaction.response.send_message(content="Updating ...")
             updator = Updator()
+            await updator.send_match_results(client)
             updator.update_ended_matches()
             updator.update_upcoming_matches()
             updator.update_all_user_bet_history()

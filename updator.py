@@ -1,6 +1,6 @@
 from replit import db
 
-from config import UPDATE_CHANNEL_ID, BID_CHANNEL_ID
+from config import UPDATE_CHANNEL_ID, BID_CHANNEL_ID, MATCH_RESULTS_CHANNEL_ID
 import events_api
 from match import Match
 from match_table import MatchTable
@@ -43,7 +43,7 @@ class Updator:
     away = match['results'][0]['away']['name']
     time = int(match['results'][0]['time'])
 
-    event_odd = self.api.get_event_odds(event_id)
+    event_odd = self.api.get_event_odds(event_id, source='bet365')
 
     if event_odd['success'] != 1:
       print("Cannot get the event odd")
@@ -84,15 +84,14 @@ class Updator:
     updated_matches_map = self._to_map(updated_matches)
     old_matches_map = self._to_map(old_matches)
     for match_id in updated_matches_map.keys():
-      if match_id not in old_matches_map:
+      if match_id not in old_matches_map or not old_matches_map[
+          match_id].result:
         new_results.append(updated_matches_map[match_id])
     new_results.sort(key=lambda x: x.time, reverse=False)
-    update_channel = client.get_channel(UPDATE_CHANNEL_ID)
-    if not new_results:
-      await update_channel.send("No new result")
-    else:
+    match_results_channel = client.get_channel(MATCH_RESULTS_CHANNEL_ID)
+    if new_results:
       embed_content = generate_view_matches_embed_content(new_results)
-      await update_channel.send(content='', embeds=[embed_content])
+      await match_results_channel.send(content='', embeds=[embed_content])
     return
 
   def _get_ended_events(self):
@@ -131,6 +130,9 @@ class Updator:
         self._from_event_to_match(event) for event in ended_events_from_api
     ]
     updated_matches_map = self._to_map(updated_matches)
+
+    for match_id in updated_matches_map.keys():
+      updated_match_payload = updated_matches_map[match_id].to_payload()
 
     old_matches = self.match_table.list_all_matches()
     old_matches_map = self._to_map(old_matches)
@@ -228,32 +230,30 @@ class Updator:
             'used_hopestar': 0
         }
       if match.is_over:
-        if updated_user.history[match_id][
-            'bet_option'] == BetType.UNCHOSEN.value:
-          updated_user.history[match_id]['result'] = Result.LOSS.name
-          updated_user.loss += 1
-          updated_user.score += Result.LOSS.value
-
         if updated_user.history[match_id]['result'] == '':
-          result = self.calculator.calculate(
-              updated_user.history[match_id]['bet_option'],
-              match.asian_handicap, match.over_under, match.result)
-
-          if result == Result.WIN or result == Result.HALF_WIN:
-            updated_user.win += 1
-
-          if result == Result.LOSS or result == Result.HALF_LOSS:
+          if updated_user.history[match_id][
+              'bet_option'] == BetType.UNCHOSEN.value:
+            updated_user.history[match_id]['result'] = Result.LOSS.name
             updated_user.loss += 1
+            updated_user.score += Result.LOSS.value
+          else:
+            result = self.calculator.calculate(
+                updated_user.history[match_id]['bet_option'],
+                match.asian_handicap, match.over_under, match.result)
+            if result == Result.WIN or result == Result.HALF_WIN:
+              updated_user.win += 1
 
-          if result == Result.DRAW:
-            updated_user.draw += 1
+            if result == Result.LOSS or result == Result.HALF_LOSS:
+              updated_user.loss += 1
 
-          if updated_user.history[match_id]['used_hopestar']:
-            result = star_converter[result]
+            if result == Result.DRAW:
+              updated_user.draw += 1
 
-          updated_user.history[match_id]['result'] = result.name
-          updated_user.score += result.value
+            if updated_user.history[match_id]['used_hopestar']:
+              result = star_converter[result]
 
+            updated_user.history[match_id]['result'] = result.name
+            updated_user.score += result.value
     self.user_table.update_user(updated_user)
 
   def update_all_user_bet_history(self):
@@ -274,30 +274,30 @@ class Updator:
           }
 
         if match.is_over:
-          if updated_user.history[match_id][
-              'bet_option'] == BetType.UNCHOSEN.value:
-            updated_user.history[match_id]['result'] = Result.LOSS.name
-            updated_user.loss += 1
-            updated_user.score += Result.LOSS.value
-
           if updated_user.history[match_id]['result'] == '':
-            result = self.calculator.calculate(
-                updated_user.history[match_id]['bet_option'],
-                match.asian_handicap, match.over_under, match.result)
-            if result == Result.WIN or result == Result.HALF_WIN:
-              updated_user.win += 1
-
-            if result == Result.LOSS or result == Result.HALF_LOSS:
+            if updated_user.history[match_id][
+                'bet_option'] == BetType.UNCHOSEN.value:
+              updated_user.history[match_id]['result'] = Result.LOSS.name
               updated_user.loss += 1
+              updated_user.score += Result.LOSS.value
+            else:
+              result = self.calculator.calculate(
+                  updated_user.history[match_id]['bet_option'],
+                  match.asian_handicap, match.over_under, match.result)
+              if result == Result.WIN or result == Result.HALF_WIN:
+                updated_user.win += 1
 
-            if result == Result.DRAW:
-              updated_user.draw += 1
+              if result == Result.LOSS or result == Result.HALF_LOSS:
+                updated_user.loss += 1
 
-            if updated_user.history[match_id]['used_hopestar']:
-              result = star_converter[result]
+              if result == Result.DRAW:
+                updated_user.draw += 1
 
-            updated_user.history[match_id]['result'] = result.name
-            updated_user.score += result.value
+              if updated_user.history[match_id]['used_hopestar']:
+                result = star_converter[result]
+
+              updated_user.history[match_id]['result'] = result.name
+              updated_user.score += result.value
 
       self.user_table.update_user(updated_user)
 

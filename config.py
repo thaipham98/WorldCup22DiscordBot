@@ -12,6 +12,7 @@ REGISTER_CHANNEL_ID = int(os.getenv('REGISTER_CHANNEL_ID'))
 VERIFIED_ROLE_ID = int(os.getenv('VERIFIED_ROLE_ID'))
 UPDATE_CHANNEL_ID = int(os.getenv('UPDATE_CHANNEL_ID'))
 LEADERBOARD_CHANNEL_ID = int(os.getenv('LEADERBOARD_CHANNEL_ID'))
+MATCH_RESULTS_CHANNEL_ID = int(os.getenv('MATCH_RESULTS_CHANNEL_ID'))
                                   
 BOT_ID = int(os.getenv('BOT_ID'))
 BET_CHANNEL_NAME = 'Bet Channels'
