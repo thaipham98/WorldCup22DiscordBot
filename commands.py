@@ -110,7 +110,7 @@ def setup_commands(tree, client, events_api):
 
         await user_verify_channel.send(
             content=
-            f"Hi <@{user.id}>, please attach your confirmation here before creating bet channel",
+            f"Hi <@{user.id}>, please attach your proof of money submission here before creating bet channel",
             view=None)
 
         async def on_button_click(interaction):
