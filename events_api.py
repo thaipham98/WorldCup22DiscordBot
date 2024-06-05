@@ -1,15 +1,15 @@
 import os
 import requests
 
-token = '140008-i3LY5gSmcBJu1v'
+token = os.getenv('API_TOKEN')
 url = "https://api.b365api.com"
-sport_id = 1 #Soccer
-league_id = 29334 #World Cup 2022
-source = '10bet'
-
+sport_id = 1  #Soccer
+league_id = 35624  # Euro 2024
+source = 'ysb88'
 
 
 class Event_API:
+
     def __init__(self):
         self.url = url
         self.token = token
@@ -17,35 +17,72 @@ class Event_API:
         self.league_id = league_id
 
     def get_ended_events(self, sport_id=sport_id, league_id=league_id, page=1):
-        payload = {'sport_id': sport_id, 'league_id': league_id, 'token': token, 'page': page}
+        payload = {
+            'sport_id': sport_id,
+            'league_id': league_id,
+            'token': token,
+            'page': page
+        }
         endpoint = url + "/v3/events/ended"
         response = requests.get(endpoint, payload)
 
         return response.json()
 
-    def get_upcoming_events(self, sport_id=sport_id, league_id=league_id, page=1):
-        payload = {'sport_id': sport_id, 'league_id': league_id, 'token': token, 'page': page}
+    def get_upcoming_events(self,
+                            sport_id=sport_id,
+                            league_id=league_id,
+                            page=1):
+        payload = {
+            'sport_id': sport_id,
+            'league_id': league_id,
+            'token': token,
+            'page': page
+        }
         endpoint = url + "/v3/events/upcoming"
         response = requests.get(endpoint, payload)
 
         return response.json()
 
-    def get_ended_daily_event(self, day, sport_id=sport_id, league_id=league_id, page=1):
-        payload = {'sport_id': sport_id, 'league_id': league_id, 'token': token, 'page': page, 'day': day}
+    def get_ended_daily_event(self,
+                              day,
+                              sport_id=sport_id,
+                              league_id=league_id,
+                              page=1):
+        payload = {
+            'sport_id': sport_id,
+            'league_id': league_id,
+            'token': token,
+            'page': page,
+            'day': day
+        }
         endpoint = url + "/v3/events/ended"
         response = requests.get(endpoint, payload)
 
         return response.json()
 
     def get_inplay_events(self, sport_id=sport_id, league_id=league_id):
-        payload = {'sport_id': sport_id, 'league_id': league_id, 'token': token}
+        payload = {
+            'sport_id': sport_id,
+            'league_id': league_id,
+            'token': token
+        }
         endpoint = url + "/v3/events/inplay"
         response = requests.get(endpoint, payload)
 
         return response.json()
 
-    def get_upcoming_daily_events(self, day, sport_id=sport_id, league_id=league_id, page=1):
-        payload = {'sport_id': sport_id, 'league_id': league_id, 'token': token, 'page': page, 'day': day}
+    def get_upcoming_daily_events(self,
+                                  day,
+                                  sport_id=sport_id,
+                                  league_id=league_id,
+                                  page=1):
+        payload = {
+            'sport_id': sport_id,
+            'league_id': league_id,
+            'token': token,
+            'page': page,
+            'day': day
+        }
         endpoint = url + "/v3/events/upcoming"
         response = requests.get(endpoint, payload)
 
@@ -65,14 +102,8 @@ class Event_API:
 
         return response.json()
 
-if __name__ == "__main__":
-    api = Event_API()
 
-    api.get_upcoming_events(sport_id, league_id)
+# if __name__ == "__main__":
+#     api = Event_API()
 
-
-
-
-
-
-
+#     api.get_upcoming_events(sport_id, league_id)

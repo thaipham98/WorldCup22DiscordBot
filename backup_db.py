@@ -26,3 +26,5 @@ def backup_table(name):
 def backup_database():
   backup_table(name='user')
   backup_table(name='match')
+  backup_table(name='bid')
+  backup_table(name='verification')

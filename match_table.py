@@ -22,6 +22,13 @@ class MatchTable:
 
     return matches
 
+  def get_finished_match_count(self):
+    res = 0
+    for match_id in self.table.keys():
+      if self.table[match_id]['is_over']:
+        res += 1
+    return res
+
   def update_match(self, match):
     match_id = match.id
 
