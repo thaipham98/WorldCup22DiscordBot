@@ -4,7 +4,7 @@ import requests
 token = os.getenv('API_TOKEN')
 url = "https://api.b365api.com"
 sport_id = 1  #Soccer
-league_id = 1040  #C1
+league_id = 35624  # Euro 2024
 source = 'ysb88'
 
 
