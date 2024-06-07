@@ -52,7 +52,7 @@ def setup_cron_jobs(client, events_api):
       return
 
     message = "\n".join([
-        f"[{index+1}] {user.name}: {user.score} - hopestar: {user.hopestar}"
+        f"[{index+1}] {user.channel_name}: {user.score} - hopestar: {user.hopestar}"
         for index, user in enumerate(leaderboard_list)
     ])
 
