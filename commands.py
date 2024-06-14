@@ -240,18 +240,47 @@ def setup_commands(tree, client, events_api):
             user, user_channel = await create_private_channel(
                 client, interaction, user_id, channel_name)
             embed_content = get_help_embed()
-            await user_channel.send(content="Welcome {0}!".format(user.name),
+            await user_channel.send(content=f"Welcome {user_channel.name}!",
                                     embeds=[embed_content])
             finished_match_count = get_match_table().get_finished_match_count()
             user_entity = User(user.id, user.name, user_channel.id,
-                               user_channel.name, 0, 0, 0, 0, {}, 2,
+                               user_channel.name, 0, 0, 0, 0, {}, 3,
                                finished_match_count, 0)
             get_user_table().add_user(user_entity)
+            get_verification_table().verify(user_id)
+            guild = interaction.guild
+            
+            if user:
+                verified_role = guild.get_role(
+                    VERIFIED_ROLE_ID
+                )  # Replace VERIFIED_ROLE_ID with your role ID
+                try:
+                    member = await guild.fetch_member(user.id)
+                    if verified_role:
+                        await member.add_roles(verified_role)
+
+                except Exception as e:
+                    await interaction.response.send_message('Member not found',
+                                                            ephemeral=True)
+
             updator = Updator()
             updator.update_user_bet_history(user.id)
             await interaction.response.send_message(
                 content="Channel {0} is created for {1}".format(
                     channel_name, user.name))
+            
+            update_channel = client.get_channel(UPDATE_CHANNEL_ID)
+            if not update_channel:
+                return
+            await update_channel.send(
+                content=f"<@{user.id}> has joined the game.", view=None)
+            register_channel = client.get_channel(REGISTER_CHANNEL_ID)
+            if not register_channel:
+                return
+            await register_channel.send(
+                content=
+                f"Hi <@{user.id}>, channel {channel_name} is created. Please go to your right channel in Bet Channels.",
+                view=None)
         except Exception as e:
             logging.error(f"Error in create_player command: {e}")
             await interaction.response.send_message(
