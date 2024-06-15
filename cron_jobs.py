@@ -88,7 +88,7 @@ def setup_cron_jobs(client, events_api):
     updator.update_ended_matches()
     updator.update_all_user_bet_history()
     await updator.update_user_reward_hopestar(client)
-    backup_database()
+    #backup_database()
 
     admin_channel = client.get_channel(ADMIN_CHANNEL_ID)
     await admin_channel.send("Auto update done")

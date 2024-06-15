@@ -66,19 +66,16 @@ class Updator:
 
     asian_handicap = 0
     over_under = 0
-    if match_odd['odds']['1_2'][0]['time_str'] is None:
+
+    match_entity = self.match_table.view_match(str(event_id))
+    if match_entity is not None:
+      asian_handicap = match_entity.asian_handicap
+      over_under = match_entity.over_under
+    else:
       asian_handicap = float(
-          match_odd['odds']['1_2'][0]['handicap']) * matching_dir
-    else:
-      match_entity = self.match_table.view_match(str(event_id))
-      if match_entity is not None:
-        asian_handicap = match_entity.asian_handicap
-    if match_odd['odds']['1_3'][0]['time_str'] is None:
+        match_odd['odds']['1_2'][0]['handicap']) * matching_dir
       over_under = float(match_odd['odds']['1_3'][0]['handicap'])
-    else:
-      match_entity = self.match_table.view_match(str(event_id))
-      if match_entity is not None:
-        over_under = match_entity.over_under
+    
     return Match(match_id, home, away, asian_handicap, over_under, result,
                  time, is_over)
 
