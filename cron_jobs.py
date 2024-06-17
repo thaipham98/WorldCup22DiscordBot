@@ -18,7 +18,7 @@ second_matches_after_penalty = datetime.time(hour=2, minute=15, tzinfo=vn_tz)
 third_matches_update_time = datetime.time(hour=4, minute=15, tzinfo=vn_tz)
 third_matches_after_penalty = datetime.time(hour=5, minute=15, tzinfo=vn_tz)
 
-odd_update_time = datetime.time(hour=10, tzinfo=vn_tz)
+odd_update_time = datetime.time(hour=8, tzinfo=vn_tz)
 
 morning_remind_time = datetime.time(hour=11, tzinfo=vn_tz)
 afternoon_remind_time = datetime.time(hour=14, tzinfo=vn_tz)
@@ -74,7 +74,6 @@ def setup_cron_jobs(client, events_api):
     updator = Updator()
     updator.update_upcoming_matches()
     updator.update_all_user_bet_history()
-    #await updator.update_user_reward_hopestar(client)
 
     admin_channel = client.get_channel(ADMIN_CHANNEL_ID)
     await admin_channel.send("Auto: updated new odds")
@@ -91,10 +90,12 @@ def setup_cron_jobs(client, events_api):
     updator.update_ended_matches()
     updator.update_all_user_bet_history()
     await updator.update_user_reward_hopestar(client)
-    #backup_database()
 
     admin_channel = client.get_channel(ADMIN_CHANNEL_ID)
     await admin_channel.send("Auto update done")
+
+    update_channel = client.get_channel(UPDATE_CHANNEL_ID)
+    await update_channel.send("@everyone New odds are available")
 
   @tasks.loop(time=[
       morning_remind_time, afternoon_remind_time,
