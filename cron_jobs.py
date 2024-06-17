@@ -78,6 +78,9 @@ def setup_cron_jobs(client, events_api):
     admin_channel = client.get_channel(ADMIN_CHANNEL_ID)
     await admin_channel.send("Auto: updated new odds")
 
+    update_channel = client.get_channel(UPDATE_CHANNEL_ID)
+    await update_channel.send("@everyone New odds are available")
+
   @tasks.loop(time=[
       first_matches_update_time, first_matches_after_penalty,
       second_matches_update_time, second_matches_after_penalty,
@@ -93,9 +96,6 @@ def setup_cron_jobs(client, events_api):
 
     admin_channel = client.get_channel(ADMIN_CHANNEL_ID)
     await admin_channel.send("Auto update done")
-
-    update_channel = client.get_channel(UPDATE_CHANNEL_ID)
-    await update_channel.send("@everyone New odds are available")
 
   @tasks.loop(time=[
       morning_remind_time, afternoon_remind_time,
