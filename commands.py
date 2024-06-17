@@ -7,6 +7,7 @@ from database import get_bid_table, get_user_table, get_match_table, get_verific
 from user import User
 from updator import Updator
 from discord import ButtonStyle
+from result import get_result_shorthand
 
 from verification import Verification
 
@@ -249,7 +250,7 @@ def setup_commands(tree, client, events_api):
             get_user_table().add_user(user_entity)
             get_verification_table().verify(user_id)
             guild = interaction.guild
-            
+
             if user:
                 verified_role = guild.get_role(
                     VERIFIED_ROLE_ID
@@ -268,7 +269,7 @@ def setup_commands(tree, client, events_api):
             await interaction.response.send_message(
                 content="Channel {0} is created for {1}".format(
                     channel_name, user.name))
-            
+
             update_channel = client.get_channel(UPDATE_CHANNEL_ID)
             if not update_channel:
                 return
@@ -438,6 +439,44 @@ def setup_commands(tree, client, events_api):
             await interaction.response.send_message(content='Player rankings:')
             for embed in embeds:
                 await interaction.followup.send(content='', embeds=[embed])
+        except Exception as e:
+            logging.error(f"Error in record command: {e}")
+            await interaction.response.send_message(
+                content="An error occurred while displaying records.")
+
+    @tree.command(name="record_2", description="Show all records (ver2)")
+    async def view_all_record_2(interaction: discord.Interaction):
+        try:
+            if from_register_channel(interaction):
+                await interaction.response.send_message(
+                    content='You can only use /register in this channel.')
+                return
+
+            if not from_right_user(interaction):
+                await interaction.response.send_message(
+                    content='Please go to your channel {0} to use this command.'
+                    .format(interaction.channel.name))
+                return
+
+            users = get_user_table().view_all()
+            user_records = [user.to_record() for user in users]
+            sorted_records = sorted(user_records,
+                                    key=lambda x:
+                                    (x.score, x.win, x.draw, -x.loss),
+                                    reverse=True)
+
+            messages = []
+            for index, record in enumerate(sorted_records):
+                history = record.history
+                history_str = ' '.join([
+                    get_result_shorthand(item) for item in history
+                ]) if len(history) > 0 else 'No match found'
+                message = f'[{index+1}] {record.channel_name}: {record.score} - hopestar: {record.hopestar}\nWin-Draw-Loss: {record.win}-{record.draw}-{record.loss}\nHistory (max 10 recent): {history_str}\n---'
+                messages.append(message)
+
+            formated_message = '\n'.join(messages)
+            await interaction.response.send_message(
+                content=f'Player rankings:\n{formated_message}')
         except Exception as e:
             logging.error(f"Error in record command: {e}")
             await interaction.response.send_message(
