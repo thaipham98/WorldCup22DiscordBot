@@ -44,7 +44,10 @@ def setup_cron_jobs(client, events_api):
     if bid_channel is not None:
       await bid_channel.send('@everyone Trading closes at 7 pm!')
 
-  @tasks.loop(time=[leaderboard_update_time])
+  @tasks.loop(time=[
+      leaderboard_update_time, first_matches_update_time,
+      second_matches_update_time, third_matches_update_time
+  ])
   async def leaderboard_update_job():
     leaderboard_list = get_user_table().get_leaderboard()
 

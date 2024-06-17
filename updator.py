@@ -73,9 +73,9 @@ class Updator:
       over_under = match_entity.over_under
     else:
       asian_handicap = float(
-        match_odd['odds']['1_2'][0]['handicap']) * matching_dir
+          match_odd['odds']['1_2'][0]['handicap']) * matching_dir
       over_under = float(match_odd['odds']['1_3'][0]['handicap'])
-    
+
     return Match(match_id, home, away, asian_handicap, over_under, result,
                  time, is_over)
 
