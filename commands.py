@@ -409,8 +409,8 @@ def setup_commands(tree, client, events_api):
                 'This is an admin command. You are not allowed to perform this command! Please use /bet, /me, record, and /help'
             )
 
-    @tree.command(name="record", description="Show all records")
-    async def view_all_record(interaction: discord.Interaction):
+    @tree.command(name="record_old", description="Show all records (old)")
+    async def view_all_record_2(interaction: discord.Interaction):
         try:
             if from_register_channel(interaction):
                 await interaction.response.send_message(
@@ -444,8 +444,8 @@ def setup_commands(tree, client, events_api):
             await interaction.response.send_message(
                 content="An error occurred while displaying records.")
 
-    @tree.command(name="record_2", description="Show all records (ver2)")
-    async def view_all_record_2(interaction: discord.Interaction):
+    @tree.command(name="record", description="Show all records")
+    async def view_all_record(interaction: discord.Interaction):
         try:
             if from_register_channel(interaction):
                 await interaction.response.send_message(
@@ -471,7 +471,7 @@ def setup_commands(tree, client, events_api):
                 history_str = ' '.join([
                     get_result_shorthand(item) for item in history
                 ]) if len(history) > 0 else 'No match found'
-                message = f'[{index+1}] {record.channel_name}: {record.score} - hopestar: {record.hopestar}\nWin-Draw-Loss: {record.win}-{record.draw}-{record.loss}\nHistory (max 10 recent): {history_str}\n---'
+                message = f'**[{index+1}] {record.channel_name}**: {record.score} - hopestar: {record.hopestar}\n**Win-Draw-Loss**: {record.win}-{record.draw}-{record.loss}\n**History (max 10 recent)**: {history_str}\n---'
                 messages.append(message)
 
             formated_message = '\n'.join(messages)
