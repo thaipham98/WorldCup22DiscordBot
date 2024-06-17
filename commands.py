@@ -471,7 +471,7 @@ def setup_commands(tree, client, events_api):
                 history_str = ' '.join([
                     get_result_shorthand(item) for item in history
                 ]) if len(history) > 0 else 'No match found'
-                message = f'**[{index+1}] {record.channel_name}**: {record.score} - hopestar: {record.hopestar}\n**Win-Draw-Loss**: {record.win}-{record.draw}-{record.loss}\n**History (max 10 recent)**: {history_str}\n---'
+                message = f'**[{index+1}] {record.channel_name}**: {record.score}\nHopestar: {record.hopestar}\nWin-Draw-Loss: {record.win}-{record.draw}-{record.loss}\nHistory (10 recent): {history_str}\n---'
                 messages.append(message)
 
             formated_message = '\n'.join(messages)
