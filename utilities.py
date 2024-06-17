@@ -545,8 +545,9 @@ def generate_view_matches_embed_content(matches):
 
   for idx, match in enumerate(matches, 1):
     # Add field with formatted name and value
-    field_name = f"**{idx}. Home: {match.home} - Away: {match.away}**"
-    field_value = f"{match.result}\n___"
+    field_name = f"**Home: {match.home} - Away: {match.away}**"
+    match_time = f'{formatTime(match.time)} VN time'
+    field_value = f"{match.result}\n{match_time}\n___"
 
     embed_content.add_field(name=field_name, value=field_value, inline=False)
 
