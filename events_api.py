@@ -5,7 +5,7 @@ token = os.getenv('API_TOKEN')
 url = "https://api.b365api.com"
 sport_id = 1  #Soccer
 league_id = 35624  # Euro 2024
-source = 'ysb88'
+source = '888sport'
 
 
 class Event_API:

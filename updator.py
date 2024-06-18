@@ -52,9 +52,14 @@ class Updator:
 
     match_odd = event_odd['results']
     matching_dir = int(match_odd['stats']['matching_dir'])
-
-    result = match_odd['odds']['1_2'][0]['ss']
     is_over = (match['results'][0]['ss'] is not None)
+
+    result = None
+
+    if is_over:
+      home_score = match['results'][0]['scores']['2']['home']
+      away_score = match['results'][0]['scores']['2']['away']
+      result = f'{home_score}-{away_score}'
 
     #get odd from ysb88
     event_odd = self.api.get_event_odds(event_id)
