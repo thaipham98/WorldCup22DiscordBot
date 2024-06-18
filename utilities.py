@@ -27,11 +27,11 @@ def get_daily_bet(events_api):
   today = "{:02d}".format(current_time.year) + "{:02d}".format(
       current_time.month) + "{:02d}".format(current_time.day)
   upcoming_daily_matches = events_api.get_upcoming_daily_events(today)
-  print("upcoming:", upcoming_daily_matches, flush=True)
+  #print("upcoming:", upcoming_daily_matches, flush=True)
   inplay_matches = events_api.get_inplay_events()
-  print("inplay:", inplay_matches, flush=True)
+  #print("inplay:", inplay_matches, flush=True)
   ended_daily_matches = events_api.get_ended_daily_event(today)
-  print("ended", ended_daily_matches, flush=True)
+  #print("ended", ended_daily_matches, flush=True)
   #daily_matches = events_api.get_upcoming_daily_events('20221121')
 
   #daily_matches = upcoming_daily_matches + inplay_matches + ended_daily_matches
@@ -50,7 +50,7 @@ def get_daily_bet(events_api):
 
   #print(daily_matches)
   daily_bet = bet_model.from_daily_matches_to_daily_bet(daily_matches)
-  print(daily_bet, flush=True)
+  #print(daily_bet, flush=True)
   return daily_bet
 
 
