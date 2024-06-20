@@ -14,7 +14,7 @@ from offer import Offer
 from bid_status import BidStatus
 from user import User
 
-HOPESTAR_PRICE = 10000
+HOPESTAR_PRICE = 8500
 
 
 def check_user_permission(interaction):
@@ -384,7 +384,7 @@ def update_hopestar_after_converting(user_id, hopestar_amount):
 def generate_star_convert_modal(current_score):
   convert_modal = Modal(title="Mua sao đê")
   convert_star_input = TextInput(label="Đang có " + str(current_score) +
-                                 " điểm. Mỗi sao 10k. Mua bn?",
+                                 f" điểm. Mỗi sao {HOPESTAR_PRICE}. Mua bn?",
                                  required=True,
                                  max_length=5,
                                  min_length=1)
