@@ -194,10 +194,17 @@ class Updator:
   def _to_map(self, matches):
     map = {}
 
-    for match in matches:
-      if match.id not in map:
-        map[match.id] = match
+    for i in range(len(matches)):
+      match = matches[i]
 
+      #handle if two matches happen at the same time
+      if i > 0:
+        prev_match = matches[i-1]
+        if match.time == prev_match.time:
+          match.time += 1
+        
+      map[match.match_id] = match
+    
     return map
 
   def update_upcoming_matches(self):
