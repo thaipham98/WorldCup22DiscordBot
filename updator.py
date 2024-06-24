@@ -194,6 +194,13 @@ class Updator:
   def _to_map(self, matches):
     map = {}
 
+    for match in matches:
+      if match.id not in map:
+        map[match.id] = match
+  
+  def _to_map_for_updated_match(self, matches):
+    map = {}
+
     for i in range(len(matches)):
       match = matches[i]
 
@@ -212,7 +219,7 @@ class Updator:
     updated_matches = [
         self._from_event_to_match(event) for event in upcoming_events_from_api
     ]
-    updated_matches_map = self._to_map(updated_matches)
+    updated_matches_map = self._to_map_for_updated_match(updated_matches)
 
     old_matches = self.match_table.list_all_matches()
     old_matches_map = self._to_map(old_matches)
